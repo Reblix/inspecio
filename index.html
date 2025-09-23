@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HGP — Auditoria de Segurança do Paciente</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#0A3A6B" />
+
+  <!-- Ícone / Logo (coloque seu arquivo em /public/logo.png e /public/icons/*) -->
+  <link rel="icon" href="/logo.png" />
+
+  <!-- (Opcional) Tailwind via CDN: ajuda no dev; o SW vai cachear para uso offline após 1º acesso -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root {
+      --primary-blue: #0A3A6B;
+      --secondary-blue: #1E63A1;
+      --light-blue: #F0F5FA;
+      --white: #FFFFFF;
+      --text-dark: #333333;
+      --gray-light: #f4f4f4;
+    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Inter", sans-serif; background: var(--light-blue); }
+    .sidebar-icon { transition: .2s ease; }
+    .sidebar-icon:hover { transform: scale(1.07); color: var(--primary-blue); }
+    .btn-primary { background: var(--primary-blue); color: var(--white); }
+    .btn-primary:hover { background: var(--secondary-blue); }
+    #pdf-content.is-rendering { display:block !important; position:absolute; left:-9999px; top:0; width:800px; }
+  </style>
+</head>
+<body class="bg-gray-100">
+
+  <!-- Shell principal -->
+  <div id="main-view">
+    <div class="flex h-screen bg-gray-50">
+      <!-- Sidebar -->
+      <aside class="flex flex-col items-center w-20 text-gray-700 bg-white shadow-lg">
+        <div class="flex items-center justify-center w-full h-20 border-b">
+          <img src="/logo.png" alt="Logo HGP" class="w-10 h-10 rounded-full">
+        </div>
+        <nav class="flex flex-col flex-grow space-y-6 pt-10">
+          <button id="nav-dashboard" class="sidebar-icon" title="Dashboard" aria-label="Dashboard">
+            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          </button>
+          <button id="nav-metas" class="sidebar-icon" title="Metas" aria-label="Metas">
+            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Conteúdo -->
+      <main class="flex-1 p-6 overflow-y-auto">
+        <header class="flex items-center justify-between mb-6 gap-3">
+          <h1 id="page-title" class="text-3xl font-bold text-gray-800">Dashboard</h1>
+          <div class="flex items-center gap-2">
+            <button id="loginBtn" class="px-3 py-2 rounded-lg border border-blue-600 text-blue-700 hover:bg-blue-50">Login</button>
+            <button id="logoutBtn" class="px-3 py-2 rounded-lg border border-gray-400 text-gray-700 hover:bg-gray-100">Logout</button>
+          </div>
+        </header>
+
+        <!-- Dashboard -->
+        <section id="dashboard-view" class="space-y-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <div class="p-6 bg-white rounded-2xl shadow-md flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-500">Aderência Geral</h3>
+                <p id="geral-adherence" class="text-4xl font-bold text-blue-600">0%</p>
+              </div>
+              <span class="text-blue-200 text-3xl">⏱️</span>
+            </div>
+            <div class="p-6 bg-white rounded-2xl shadow-md flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-500">Auditorias Realizadas</h3>
+                <p id="total-audits" class="text-4xl font-bold text-green-600">0</p>
+              </div>
+              <span class="text-green-200 text-3xl">📝</span>
+            </div>
+            <div class="p-6 bg-white rounded-2xl shadow-md flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-500">Metas Auditadas</h3>
+                <p id="audited-metas" class="text-4xl font-bold text-purple-600">0</p>
+              </div>
+              <span class="text-purple-200 text-3xl">🎯</span>
+            </div>
+            <div class="p-6 bg-white rounded-2xl shadow-md flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-500">Conformidades</h3>
+                <p id="total-conformidades" class="text-4xl font-bold text-teal-600">0</p>
+              </div>
+              <span class="text-teal-200 text-3xl">✅</span>
+            </div>
+            <div class="p-6 bg-white rounded-2xl shadow-md flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-500">Não Conformidades</h3>
+                <p id="total-nao-conformidades" class="text-4xl font-bold text-red-500">0</p>
+              </div>
+              <span class="text-red-200 text-3xl">❌</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="p-6 bg-white rounded-2xl shadow-md">
+              <h3 class="text-xl font-semibold text-gray-700 mb-4">Aderência por Meta</h3>
+              <canvas id="adherence-chart"></canvas>
+            </div>
+            <div class="p-6 bg-white rounded-2xl shadow-md">
+              <h3 class="text-xl font-semibold text-gray-700 mb-4">Conformidade vs Não Conformidade</h3>
+              <canvas id="compliance-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="p-6 bg-white rounded-2xl shadow-md">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Estatísticas por Meta</h3>
+            <div id="meta-stats-container" class="space-y-4"></div>
+          </div>
+
+          <div class="p-6 bg-white rounded-2xl shadow-md">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Detalhes por Item</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead>
+                  <tr class="border-b">
+                    <th class="py-2 px-4">Meta</th>
+                    <th class="py-2 px-4">Item</th>
+                    <th class="py-2 px-4 text-green-600">Conforme (Qtd)</th>
+                    <th class="py-2 px-4 text-green-600">Conforme (%)</th>
+                    <th class="py-2 px-4 text-red-500">Não Conforme (Qtd)</th>
+                    <th class="py-2 px-4 text-red-500">Não Conforme (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="item-details-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Metas -->
+        <section id="metas-view" class="hidden">
+          <div id="metas-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+        </section>
+
+        <!-- Formulário -->
+        <section id="form-view" class="hidden p-6 bg-white rounded-2xl shadow-lg">
+          <div id="form-content">
+            <h2 id="form-title" class="text-2xl font-bold text-gray-800 mb-6"></h2>
+
+            <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input type="text" id="form-auditor" placeholder="Auditor" class="p-2 border rounded-lg" />
+              <input type="text" id="form-setor" placeholder="Setor" class="p-2 border rounded-lg" />
+              <input type="date" id="form-date" class="p-2 border rounded-lg" />
+            </div>
+
+            <div id="form-items" class="space-y-6"></div>
+
+            <div class="mt-8">
+              <label class="block text-lg font-semibold text-gray-700 mb-2">Anexar Fotos (máx. 5):</label>
+              <input type="file" id="photo-input" accept="image/*" class="hidden" />
+              <button id="add-photo-button" class="px-4 py-2 text-sm text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200">
+                + Adicionar Foto
+              </button>
+              <div id="image-previews" class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+            </div>
+
+            <div class="mt-8 flex justify-end gap-3">
+              <button id="cancel-form-button" class="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
+              <button id="save-form-button" class="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700">Salvar Auditoria</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Conteúdo auxiliar para PDF (render offscreen) -->
+  <div id="pdf-content" class="hidden"></div>
+
+  <!-- Modal -->
+  <div id="custom-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+      <h3 id="modal-title" class="text-2xl font-bold text-gray-800 mb-4"></h3>
+      <p id="modal-message" class="text-gray-600 mb-8"></p>
+      <div id="modal-buttons" class="flex justify-end gap-3"></div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="text-white text-center">
+      <div class="animate-spin mb-4" style="width:48px;height:48px;border:5px solid #fff;border-top-color:transparent;border-radius:50%"></div>
+      <p class="text-lg">Gerando PDF, por favor aguarde...</p>
+    </div>
+  </div>
+
+  <!-- Bundle (Vite) -->
+  <!-- Em DEV, o Vite injeta o script automaticamente quando você usa `npm run dev`.
+       Em PRODUÇÃO, o build gerará os assets; o plugin PWA registrará o SW. -->
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

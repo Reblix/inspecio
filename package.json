@@ -1,0 +1,27 @@
+{
+  "name": "hgp-auditoria",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "^3.20.0",
+    "@pnp/msaljsclient": "^4.9.0",
+    "@pnp/sp": "^4.9.0",
+    "chart.js": "^4.4.1",
+    "html2canvas": "^1.4.1",
+    "idb": "^8.0.0",
+    "jspdf": "^2.5.1",
+    "workbox-window": "^7.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8",
+    "vite-plugin-pwa": "^0.20.0",
+    "workbox-build": "^7.3.0"
+  }
+}
