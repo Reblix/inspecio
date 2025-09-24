@@ -19,7 +19,7 @@ const options: MSALOptions = {
     }
   },
   authParams: {
-    scopes: ["https://reblinfelipe.sharepoint.com/.default"], // usa permissões concedidas ao SPO
+    scopes: ["https://reblinfelipe.sharepoint.com/AllSites.FullControl"], // usa permissões concedidas ao SPO
     forceRefresh: false
   }
 };

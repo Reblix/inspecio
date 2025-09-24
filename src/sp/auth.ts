@@ -39,8 +39,8 @@ msal.addEventCallback((ev) => {
 
 export async function login() {
   await msal.loginRedirect({
-    scopes: [`${siteOrigin}/.default`, "Sites.ReadWrite.All"],
-  });
+  scopes: ["https://reblinfelipe.sharepoint.com/AllSites.FullControl"]
+});
 }
 
 export function logout() {
