@@ -1,5 +1,7 @@
 import { sp } from "./pnp";
 
+
+
 const LIST_AUDITORIAS = "Auditorias";
 const LIST_RESPOSTAS  = "RespostasAuditoria";
 const LIB_FOTOS       = "FotosAuditoria";
@@ -32,9 +34,30 @@ export async function addResposta(auditoriaId: number, itemIndex: number, respos
 }
 
 export async function uploadFoto(auditoriaId: number, file: File) {
-  // envia arquivo para a biblioteca e seta metadados via ListItem
   const folder = sp.web.lists.getByTitle(LIB_FOTOS).rootFolder;
-  const added = await folder.files.addUsingPath(file.name, file, { Overwrite: true });
-  await added.file.listItemAllFields.update({ AuditoriaID: auditoriaId }, "*"); // coluna numérica
-  return added;
+
+  // upload (overwrite)
+  const res = await folder.files.addUsingPath(
+    encodeURIComponent(file.name), // bom encode para nomes
+    file,
+    { Overwrite: true }
+  );
+
+  // Em diferentes versões o retorno pode ser:
+  // - { data: IFileInfo, file: IFile }  (várias builds)
+  // - { data: IFileInfo }               (algumas)
+  // Pegamos a URL relativa do arquivo de forma robusta:
+  const serverRel =
+    (res as any)?.data?.ServerRelativeUrl ??
+    (res as any)?.ServerRelativeUrl ??
+    (res as any)?.file?.serverRelativeUrl;
+
+  // Recupera o arquivo e o ListItem para atualizar metadados
+  const uploadedFile = sp.web.getFileByServerRelativePath(serverRel);
+  const item = await uploadedFile.getItem();
+  await item.update({ AuditoriaID: auditoriaId }, "*"); // coluna numérica
+  return res;
 }
+
+
+

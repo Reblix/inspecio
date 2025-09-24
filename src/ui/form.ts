@@ -159,11 +159,12 @@ async function saveAudit() {
       await addResposta(spId, a.itemIndex, a.resposta);
     }
 
-    const photos = await db.getAllFromIndex?.("photos", "auditId"); // pode não existir índice; vamos buscar manual:
-    const allPhotos = (await db.getAll("photos")).filter(p => p.auditId === audit.idLocal);
+    const allPhotos = await db.getAllFromIndex("photos", "byAudit", audit.idLocal);
     for (const p of allPhotos) {
       await uploadFoto(spId, new File([p.blob], p.name, { type: p.blob.type }));
     }
+
+
 
     await updateAuditoria(spId, {}); // só para garantir versão; opcional
     audit["statusSync"] = "synced";
