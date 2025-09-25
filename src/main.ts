@@ -1,57 +1,54 @@
-// src/main.ts
 import "./styles.css";
 import { registerSW } from "./pwa/registerSW";
-import { initializeAuth, login, logout } from "./sp/auth";
-import "./ui/dashboard"; // deixa a lógica da dashboard carregar quando a view "dashboard" está visível
+import { initializeAuth, login, logout, onAuthChanged, isAuthenticated } from "./sp/auth";
+import "./ui/dashboard";
 import "./ui/metas";
 import "./ui/form";
 
-// SW só em produção
 registerSW();
 
-// --- Router bem simples por hash (#dashboard, #metas, #formularios, #config)
+/** Router por hash + notificação de view ativa */
 function showView(view: string) {
-  const wanted = view || "dashboard";
+  const wanted = (view || "dashboard").toLowerCase();
   document.querySelectorAll<HTMLElement>("[data-view]").forEach(sec => {
     sec.classList.toggle("hidden", sec.dataset.view !== wanted);
   });
-  // marca ativo na sidebar
   document.querySelectorAll("#sidebarNav a[data-route]").forEach(el => {
     (el as HTMLElement).dataset.active =
       (el as HTMLAnchorElement).dataset.route === wanted ? "true" : "false";
   });
+  // dispara evento para módulos carregarem dados da view quando necessário
+  window.dispatchEvent(new CustomEvent("view:entered", { detail: { view: wanted } }));
 }
 
-function setupRouter() {
-  const apply = () => {
-    const hash = (location.hash.replace(/^#/, "") || "dashboard").toLowerCase();
-    showView(hash);
-  };
-  window.addEventListener("hashchange", apply);
-  apply();
+function applyRoute() {
+  const hash = (location.hash.replace(/^#/, "") || "dashboard").toLowerCase();
+  showView(hash);
 }
 
-window.addEventListener("DOMContentLoaded", async () => {
-  // Inicializa MSAL v3 antes de qualquer chamada de login/token
-  try {
-    await initializeAuth();
-  } catch (e) {
-    console.warn("[auth] falha ao inicializar MSAL:", e);
-  }
+window.addEventListener("hashchange", applyRoute);
 
-  // binds de auth
+// registra os listeners de clique já agora (sem esperar auth)
+window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("loginBtn")?.addEventListener("click", () => login());
   document.getElementById("logoutBtn")?.addEventListener("click", () => logout());
 
-  // navegação (delegação também funciona, mas o router cobre tudo)
-  const nav = document.getElementById("sidebarNav");
-  nav?.addEventListener("click", (ev) => {
+  // navegação por clique na sidebar (delegação)
+  document.getElementById("sidebarNav")?.addEventListener("click", (ev) => {
     const a = (ev.target as Element).closest("a[data-route]") as HTMLAnchorElement | null;
     if (!a) return;
     ev.preventDefault();
-    const route = a.dataset.route || "dashboard";
-    location.hash = route;
+    location.hash = a.dataset.route || "dashboard";
   });
 
-  setupRouter();
+  applyRoute();
+});
+
+// inicia MSAL em paralelo e notifica UI quando mudar
+initializeAuth().finally(() => {
+  // Se já houver sessão, avisa os módulos para carregarem dados
+  onAuthChanged(() => {
+    console.debug("[auth] mudou; autenticado?", isAuthenticated());
+    applyRoute(); // re-render por garantia
+  });
 });
