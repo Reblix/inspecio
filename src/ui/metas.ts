@@ -1,14 +1,15 @@
+// src/ui/metas.ts
 import { metaData, MetaKey } from "../core/metaData";
 
 function byId<T extends HTMLElement = HTMLElement>(id: string) {
   return document.getElementById(id) as T;
 }
 
-function showView(name: "dashboard" | "metas" | "form") {
+export function showView(name: "dashboard" | "metas" | "form") {
   const v = {
     dashboard: byId("dashboard-view"),
     metas: byId("metas-view"),
-    form: byId("form-view")
+    form: byId("form-view"),
   };
   Object.values(v).forEach(el => el.classList.add("hidden"));
   v[name].classList.remove("hidden");
@@ -44,9 +45,8 @@ function setupNav() {
   byId("nav-metas").addEventListener("click", () => showView("metas"));
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// Inicializador explícito chamado pelo main.ts
+export function initMetasPage() {
   setupNav();
   renderMetasGrid();
-});
-
-export { showView };
+}

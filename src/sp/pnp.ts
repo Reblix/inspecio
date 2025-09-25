@@ -1,14 +1,29 @@
 // src/sp/pnp.ts
-import { spfi, DefaultHeaders } from "@pnp/sp";
-import { BearerToken } from "@pnp/queryable";
+import { spfi, SPFI } from "@pnp/sp";
 import "@pnp/sp/webs";
-import "@pnp/sp/lists";
-import "@pnp/sp/items";
-import { getAccessTokenSP } from "./auth";
+import { Queryable } from "@pnp/queryable";
+import { acquireSpToken } from "./auth";
 
-const SP_SITE = import.meta.env.VITE_SP_SITE; // https://TENANT.sharepoint.com/sites/segpaciente
+/** Behavior que injeta sempre o Bearer Token mais recente antes de cada request */
+function MsalAuth() {
+  return (instance: Queryable) => {
+    instance.on.auth(async (url, init) => {
+      const token = await acquireSpToken();
+      init.headers = {
+        ...(init.headers || {}),
+        Authorization: `Bearer ${token}`,
+      };
+      return [url, init];
+    });
+    return instance;
+  };
+}
 
-export async function getSp() {
-  const token = await getAccessTokenSP();
-  return spfi(SP_SITE).using(DefaultHeaders(), BearerToken(token));
+let _sp: SPFI | null = null;
+
+export function getSp(): SPFI {
+  if (_sp) return _sp;
+  const baseUrl = import.meta.env.VITE_SP_SITE; // ex: https://{tenant}.sharepoint.com/sites/segpaciente
+  _sp = spfi(baseUrl).using(MsalAuth());
+  return _sp;
 }

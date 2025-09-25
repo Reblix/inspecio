@@ -1,28 +1,27 @@
 // src/sp/user.ts
 import { getSp } from "./pnp";
+import "@pnp/sp/webs";
 import "@pnp/sp/site-users/web";
 import "@pnp/sp/site-groups/web";
 
-export type AppUser = {
-  id: number;
-  email: string;
-  loginName: string;
-  displayName: string;
-  isAdmin: boolean;
-};
+export async function getCurrentUser() {
+  const sp = getSp();
+  const me = await sp.web.currentUser();
+  const adminsGroup = import.meta.env.VITE_SP_GROUP_ADMINS;
 
-export async function getCurrentUser(): Promise<AppUser> {
-  const sp = await getSp();
-
-  const u = await sp.web.currentUser(); // { Id, Email, LoginName, Title, ... }
-  const groups = await sp.web.currentUser.groups(); // [{ Title, Id, ... }]
-  const isAdmin = groups.some(g => g.Title === import.meta.env.VITE_SP_GROUP_ADMINS);
+  let isAdmin = false;
+  if (adminsGroup) {
+    try {
+      const users = await sp.web.siteGroups.getByName(adminsGroup).users();
+      isAdmin = !!users.find(u => u.LoginName === me.LoginName);
+    } catch { /* grupo não existe ou sem permissão */ }
+  }
 
   return {
-    id: u.Id,
-    email: u.Email,
-    loginName: u.LoginName,
-    displayName: u.Title,
+    id: me.Id,
+    login: me.LoginName,
+    email: me.Email,
+    title: me.Title,
     isAdmin,
   };
 }

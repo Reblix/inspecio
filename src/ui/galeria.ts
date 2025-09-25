@@ -1,10 +1,13 @@
 // src/ui/galeria.ts
-import { getSp } from "../sp/pnp";      // <- em vez de { sp }
+import { getSp } from "../sp/pnp";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
 import "@pnp/sp/webs";
 import { getCurrentUser } from "../sp/user";
 import { updateAuditoria } from "../sp/repo";
+
+const sp = getSp();
+
 
 const LIST_AUDITORIAS = import.meta.env.VITE_SP_LIST_AUDITORIAS || "Auditorias";
 

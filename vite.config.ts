@@ -8,9 +8,8 @@ export default defineConfig({
       srcDir: "src",
       filename: "sw.ts",
       registerType: "autoUpdate",
-      injectRegister: "auto",
-      manifest: false,
-      devOptions: { enabled: false }, // ← evita MIME text/html no dev
+      injectRegister: "auto",  // registra sozinho em build
+      devOptions: { enabled: false }, // em dev NÃO registra
     }),
   ],
 });
