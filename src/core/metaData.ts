@@ -6,7 +6,7 @@ export interface MetaDef {
   items: string[];
 }
 
-export const metaData: Record<MetaKey, MetaDef> = {
+export const metaDataRaw: Record<MetaKey, MetaDef> = {
   meta1: {
     title: "Meta 1: Identificação Correta do Paciente",
     items: [
@@ -162,3 +162,6 @@ export const metaData: Record<MetaKey, MetaDef> = {
     ]
   }
 };
+
+import { applyGrouping } from "./metaGroupRules";
+export const metaData = applyGrouping(metaDataRaw);

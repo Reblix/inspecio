@@ -9,10 +9,10 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="theme-color" content="#0A3A6B" />
 
-  <!-- Ícone / Logo (coloque seu arquivo em /public/logo.png e /public/icons/*) -->
+  <!-- Ícone / Logo -->
   <link rel="icon" href="/logo.png" />
 
-  <!-- (Opcional) Tailwind via CDN: ajuda no dev; o SW vai cachear para uso offline após 1º acesso -->
+  <!-- Tailwind (ok para DEV; para produção use build/CLI) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
@@ -43,11 +43,21 @@
           <img src="/logo.png" alt="Logo HGP" class="w-10 h-10 rounded-full">
         </div>
         <nav class="flex flex-col flex-grow space-y-6 pt-10">
+          <!-- Dashboard -->
           <button id="nav-dashboard" class="sidebar-icon" title="Dashboard" aria-label="Dashboard">
             <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
           </button>
+          <!-- Metas -->
           <button id="nav-metas" class="sidebar-icon" title="Metas" aria-label="Metas">
             <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg>
+          </button>
+          <!-- Galeria -->
+          <button id="nav-galeria" class="sidebar-icon" title="Galeria de Auditorias" aria-label="Galeria">
+            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v12H4zM7 9l3 3 2-2 5 5H7z"/></svg>
+          </button>
+          <!-- Admin (será oculto via JS se não for admin) -->
+          <button id="nav-admin" class="sidebar-icon" title="Admin (Usuários)" aria-label="Admin">
+            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm-7 9a7 7 0 0114 0H5z"/></svg>
           </button>
         </nav>
       </aside>
@@ -148,10 +158,17 @@
           <div id="form-content">
             <h2 id="form-title" class="text-2xl font-bold text-gray-800 mb-6"></h2>
 
+            <!-- Linha 1: Auditor / Setor / Data -->
             <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input type="text" id="form-auditor" placeholder="Auditor" class="p-2 border rounded-lg" />
+              <input type="text" id="form-auditor" placeholder="Auditor (preenchido automaticamente)" class="p-2 border rounded-lg" />
               <input type="text" id="form-setor" placeholder="Setor" class="p-2 border rounded-lg" />
               <input type="date" id="form-date" class="p-2 border rounded-lg" />
+            </div>
+
+            <!-- Linha 2: Nº do prontuário / Iniciais -->
+            <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="text" id="form-prontuario" placeholder="Número do prontuário" class="p-2 border rounded-lg" />
+              <input type="text" id="form-iniciais" placeholder="Iniciais do paciente (ex.: JSS)" maxlength="3" class="p-2 border rounded-lg" />
             </div>
 
             <div id="form-items" class="space-y-6"></div>
@@ -165,11 +182,77 @@
               <div id="image-previews" class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
             </div>
 
-            <div class="mt-8 flex justify-end gap-3">
+            <div class="mt-8 flex flex-wrap gap-3 justify-end">
+              <button id="save-draft-button" class="px-6 py-2 text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200">Salvar rascunho</button>
               <button id="cancel-form-button" class="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
               <button id="save-form-button" class="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700">Salvar Auditoria</button>
             </div>
           </div>
+        </section>
+
+        <!-- Galeria de Auditorias -->
+        <section id="galeria-view" class="hidden p-6 bg-white rounded-2xl shadow-lg">
+          <div class="flex items-end gap-3 flex-wrap mb-4">
+            <div class="flex-1 min-w-[220px]">
+              <label class="block text-sm text-gray-600 mb-1" for="f-prontuario">Nº do prontuário</label>
+              <input id="f-prontuario" type="text" class="w-full p-2 border rounded-lg" placeholder="ex.: 123456" />
+            </div>
+            <div class="flex-1 min-w-[220px]">
+              <label class="block text-sm text-gray-600 mb-1" for="f-iniciais">Iniciais do paciente</label>
+              <input id="f-iniciais" type="text" maxlength="3" class="w-full p-2 border rounded-lg" placeholder="ex.: JSS" />
+            </div>
+            <!-- Campo exibido só para admin (JS remove 'hidden' se for admin) -->
+            <div id="f-auditor-wrap" class="flex-1 min-w-[220px] hidden">
+              <label class="block text-sm text-gray-600 mb-1" for="f-auditor">Auditor (apenas admin)</label>
+              <input id="f-auditor" type="text" class="w-full p-2 border rounded-lg" placeholder="Nome do auditor" />
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button id="galeria-filtrar" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Filtrar</button>
+              <button id="galeria-limpar" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Limpar</button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b">
+                  <th class="py-2 px-4">ID</th>
+                  <th class="py-2 px-4">Meta</th>
+                  <th class="py-2 px-4">Nº Prontuário</th>
+                  <th class="py-2 px-4">Iniciais</th>
+                  <th class="py-2 px-4">Auditor</th>
+                  <th class="py-2 px-4">Data</th>
+                  <th class="py-2 px-4"></th>
+                </tr>
+              </thead>
+              <tbody id="galeria-lista"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Admin (Usuários) - só admin verá; JS pode esconder/mostrar -->
+        <section id="admin-view" class="hidden p-6 bg-white rounded-2xl shadow-lg">
+          <h2 class="text-2xl font-bold text-gray-800 mb-4">Gerenciar Usuários</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1" for="admin-email">E-mail do usuário</label>
+              <input id="admin-email" type="email" class="w-full p-2 border rounded-lg" placeholder="usuario@dominio.com" />
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1" for="admin-role">Papel</label>
+              <select id="admin-role" class="w-full p-2 border rounded-lg">
+                <option value="user">Usuário</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+            <div class="flex gap-2">
+              <button id="admin-adduser" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Adicionar</button>
+            </div>
+          </div>
+
+          <p class="text-sm text-gray-500 mt-4">Dica: este painel usa <code>ensureUser</code> e adiciona aos grupos “Inspecio Users” / “Inspecio Admins”.</p>
+          <div id="admin-users-feedback" class="mt-4 text-sm"></div>
         </section>
       </main>
     </div>
@@ -191,13 +274,11 @@
   <div id="loading-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div class="text-white text-center">
       <div class="animate-spin mb-4" style="width:48px;height:48px;border:5px solid #fff;border-top-color:transparent;border-radius:50%"></div>
-      <p class="text-lg">Gerando PDF, por favor aguarde...</p>
+      <p class="text-lg">Processando, por favor aguarde...</p>
     </div>
   </div>
 
   <!-- Bundle (Vite) -->
-  <!-- Em DEV, o Vite injeta o script automaticamente quando você usa `npm run dev`.
-       Em PRODUÇÃO, o build gerará os assets; o plugin PWA registrará o SW. -->
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
