@@ -1,5 +1,5 @@
 // src/ui/galeria.ts
-import { sp } from "../sp/pnp";
+import { getSp } from "../sp/pnp";      // <- em vez de { sp }
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
 import "@pnp/sp/webs";
@@ -32,6 +32,9 @@ function goTo(id: "admin-view" | "dashboard-view" | "metas-view" | "form-view" |
 async function fetchAuditorias(filters: { pront?: string; iniciais?: string; auditorTerm?: string }) {
   const me = await getCurrentUser().catch(() => null);
 
+  // >>> obtenha a instância autenticada do PnPjs aqui
+  const sp = await getSp();
+
   let q = sp.web.lists.getByTitle(LIST_AUDITORIAS).items
     .select("Id,Title,MetaKey,Setor,DataAuditoria,ProntuarioNumero,PacienteIniciais,Author/Id,Author/Title")
     .expand("Author")
@@ -42,10 +45,10 @@ async function fetchAuditorias(filters: { pront?: string; iniciais?: string; aud
   if (me && !me.isAdmin) where.push(`Author/Id eq ${me.id}`);
   if (filters.pront) where.push(`substringof('${esc(filters.pront)}', ProntuarioNumero)`);
   if (filters.iniciais) where.push(`substringof('${esc(filters.iniciais.toUpperCase())}', PacienteIniciais)`);
-
   if (where.length) q = q.filter(where.join(" and "));
 
   const items = await q();
+
   // Filtro por auditor (cliente) — substring no Author/Title
   const auditorTerm = filters.auditorTerm?.trim().toLowerCase();
   const data = auditorTerm
@@ -81,19 +84,15 @@ function renderTabela(rows: Awaited<ReturnType<typeof fetchAuditorias>>) {
     tbody.appendChild(tr);
   });
 
-  // Ver (detalhes simples)
   tbody.querySelectorAll<HTMLButtonElement>("[data-open]").forEach(btn => {
     btn.addEventListener("click", () => openDetails(Number(btn.dataset.open)));
   });
-
-  // Editar (atualizar campos de topo)
   tbody.querySelectorAll<HTMLButtonElement>("[data-edit]").forEach(btn => {
     btn.addEventListener("click", () => openEditModal(Number(btn.dataset.edit)));
   });
 }
 
 async function openDetails(id: number) {
-  // Detalhe rápido (para edição completa de respostas, podemos evoluir depois)
   const rows = await fetchAuditorias({});
   const item = rows.find(r => r.Id === id);
   if (!item) return;
@@ -183,13 +182,11 @@ async function applyFilters() {
 }
 
 export async function initGaleriaPage() {
-  // Abrir a página ao clicar no menu
   document.getElementById("nav-galeria")?.addEventListener("click", async () => {
     goTo("galeria-view");
     await applyFilters();
   });
 
-  // Filtros
   document.getElementById("galeria-filtrar")?.addEventListener("click", applyFilters);
   document.getElementById("galeria-limpar")?.addEventListener("click", async () => {
     (document.getElementById("f-prontuario") as HTMLInputElement).value = "";

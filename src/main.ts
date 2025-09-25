@@ -1,18 +1,15 @@
-// main.ts
-
+import { initAuth, login, logout } from "./sp/auth";
 import { initAdminPage } from "./ui/admin";
 import { initGaleriaPage } from "./ui/galeria";
 import { initLoginPage } from "./ui/login";
-import { registerSW } from "./pwa/registerSW";
-import { msal, login, logout } from "./sp/auth"; // <- exporte msal do auth.ts
-import "./ui/dashboard";
-import "./ui/metas";
-import "./ui/form";
+// (se você usa PWA:) import "./pwa";
 
-registerSW();
+document.addEventListener("DOMContentLoaded", async () => {
+  await initAuth();        // trata o retorno do redirect
+  await initLoginPage();   // mostra tela de login se não autenticado
+  await initAdminPage();   // habilita menu Admin apenas p/ admins
+  await initGaleriaPage(); // liga filtros/rotas da galeria
 
-(async () => {
-  await msal.initialize(); // MSAL precisa ser inicializado antes de qualquer chamada
-  document.getElementById("loginBtn")?.addEventListener("click", () => login());
-  document.getElementById("logoutBtn")?.addEventListener("click", () => logout());
-})();
+  document.getElementById("loginBtn")?.addEventListener("click", login);
+  document.getElementById("logoutBtn")?.addEventListener("click", logout);
+});

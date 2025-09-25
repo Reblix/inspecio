@@ -1,27 +1,14 @@
-import { spfi, SPBrowser } from "@pnp/sp";
-import { MSAL, MSALOptions } from "@pnp/msaljsclient";
+import { spfi, DefaultHeaders } from "@pnp/sp";
+import { BearerToken } from "@pnp/queryable";
 import "@pnp/sp/webs";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
-import "@pnp/sp/files";
-import "@pnp/sp/folders";
 
-// PREENCHA com os mesmos IDs do auth.ts
-const TENANT_ID = "7cf881e5-5436-4a63-bbbb-0be177900711";
-const CLIENT_ID = "d3800297-e145-4b6b-b3e3-d427676204aa";
-const siteUrl = "https://reblinfelipe.sharepoint.com/sites/segpaciente";
+import { getAccessTokenSP } from "./auth";
 
-const options: MSALOptions = {
-  configuration: {
-    auth: {
-      authority: `https://login.microsoftonline.com/${TENANT_ID}/`,
-      clientId: CLIENT_ID
-    }
-  },
-  authParams: {
-    scopes: ["https://reblinfelipe.sharepoint.com/AllSites.FullControl"], // usa permissões concedidas ao SPO
-    forceRefresh: false
-  }
-};
+const SP_SITE = import.meta.env.VITE_SP_SITE; // https://<tenant>.sharepoint.com/sites/segpaciente
 
-export const sp = spfi(siteUrl).using(SPBrowser(), MSAL(options));
+export async function getSp() {
+  const token = await getAccessTokenSP();
+  return spfi(SP_SITE).using(DefaultHeaders(), BearerToken(token));
+}

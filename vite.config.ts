@@ -5,13 +5,12 @@ export default defineConfig({
   plugins: [
     VitePWA({
       strategies: "injectManifest",
-      srcDir: "src/pwa",
+      srcDir: "src",
       filename: "sw.ts",
+      registerType: "autoUpdate",
       injectRegister: "auto",
-      manifest: false, // usamos nosso manifest em /public
-      injectManifest: {
-        globPatterns: ["**/*.{js,css,html,png,svg,woff2}"]
-      }
-    })
-  ]
+      manifest: false,
+      devOptions: { enabled: false }, // ← evita MIME text/html no dev
+    }),
+  ],
 });

@@ -1,7 +1,7 @@
 // src/ui/admin.ts
 import "@pnp/sp/site-users/web";
 import "@pnp/sp/site-groups/web";
-import { sp } from "../sp/pnp";
+import { getSp } from "../sp/pnp";        // << trocado
 import { getCurrentUser } from "../sp/user";
 
 const $ = (id: string) => document.getElementById(id)! as HTMLElement;
@@ -29,13 +29,12 @@ export async function initAdminPage() {
   const wrapAud = document.getElementById("f-auditor-wrap");
   const feedback = document.getElementById("admin-users-feedback");
 
-  let me = null;
-  try { me = await getCurrentUser(); } catch { /* não logado */ }
+  let me: any = null;
+  try { me = await getCurrentUser(); } catch {}
 
-  // Esconde o menu Admin se não for admin
+  // esconder menu Admin e filtro por auditor se não for admin
   if (!me || !me.isAdmin) {
     navBtn?.classList.add("hidden");
-    // também oculta o campo de filtro por auditor na galeria
     wrapAud?.classList.add("hidden");
   } else {
     navBtn?.classList.remove("hidden");
@@ -47,19 +46,32 @@ export async function initAdminPage() {
   // Botão: adicionar usuário a um grupo
   document.getElementById("admin-adduser")?.addEventListener("click", async () => {
     const email = (document.getElementById("admin-email") as HTMLInputElement).value.trim();
-    const role = (document.getElementById("admin-role") as HTMLSelectElement).value as "admin" | "user";
-    if (!email) { if (feedback) feedback.innerHTML = `<span class="text-red-700">Informe um e-mail válido.</span>`; return; }
+    const role  = (document.getElementById("admin-role") as HTMLSelectElement).value as "admin" | "user";
+    if (!email) {
+      if (feedback) feedback.innerHTML = `<span class="text-red-700">Informe um e-mail válido.</span>`;
+      return;
+    }
 
     try {
       if (feedback) feedback.textContent = "Adicionando...";
-      const ensured = await sp.web.ensureUser(email); // garante o usuário no site
-      const login = ensured.LoginName;
-      const groupName = role === "admin" ? import.meta.env.VITE_SP_GROUP_ADMINS : import.meta.env.VITE_SP_GROUP_USERS;
+
+      // >>> pegue a instância autenticada do PnPjs
+      const sp = await getSp();
+
+      const ensured = await sp.web.ensureUser(email);   // garante o usuário no site
+      const login   = ensured.LoginName;                // atenção: sem ".data"
+      const groupName = role === "admin"
+        ? import.meta.env.VITE_SP_GROUP_ADMINS
+        : import.meta.env.VITE_SP_GROUP_USERS;
+
       await sp.web.siteGroups.getByName(groupName).users.add(login);
-      if (feedback) feedback.innerHTML = `<span class="text-green-700">Usuário adicionado ao grupo <b>${groupName}</b>.</span>`;
+
+      if (feedback) feedback.innerHTML =
+        `<span class="text-green-700">Usuário adicionado ao grupo <b>${groupName}</b>.</span>`;
     } catch (e: any) {
       console.error(e);
-      if (feedback) feedback.innerHTML = `<span class="text-red-700">Falha ao adicionar: ${e?.message ?? e}</span>`;
+      if (feedback) feedback.innerHTML =
+        `<span class="text-red-700">Falha ao adicionar: ${e?.message ?? e}</span>`;
     }
   });
 }
