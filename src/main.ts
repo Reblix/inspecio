@@ -1,4 +1,3 @@
-// src/main.ts
 import './styles.css';
 import { registerSW } from './pwa/registerSW';
 import { login, logout } from './sp/auth';
@@ -9,15 +8,16 @@ import './ui/form';
 registerSW();
 
 window.addEventListener('DOMContentLoaded', () => {
-  const loginBtn = document.getElementById('loginBtn');
-  if (loginBtn) loginBtn.addEventListener('click', login);
+  document.getElementById('loginBtn')?.addEventListener('click', login as any);
+  document.getElementById('logoutBtn')?.addEventListener('click', logout as any);
 
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) logoutBtn.addEventListener('click', logout);
-
-  // marca link ativo (exemplo simples)
-  const hash = location.hash || '#dashboard';
-  document.querySelectorAll('aside nav a').forEach(a => {
-    (a as HTMLElement).dataset.active = (a as HTMLAnchorElement).getAttribute('href') === hash ? 'true' : 'false';
-  });
+  const syncActive = () => {
+    const hash = (location.hash.replace('#', '') || 'dashboard').toLowerCase();
+    document.querySelectorAll('#sidebarNav a[data-route]').forEach((el) => {
+      (el as HTMLElement).dataset.active =
+        (el as HTMLAnchorElement).dataset.route === hash ? 'true' : 'false';
+    });
+  };
+  window.addEventListener('hashchange', syncActive);
+  syncActive();
 });

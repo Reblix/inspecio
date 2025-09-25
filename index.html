@@ -4,59 +4,105 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0ea5e9" />
-    <!-- Manifest + ícones em /public -->
+    <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <title>Inspecio</title>
+    <!-- Chart.js opcional (gráficos só rodam se esta lib existir) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
-  <body class="bg-slate-50">
-    <!-- Layout base: sidebar + conteúdo -->
-    <div id="app" class="min-h-svh flex">
-      <!-- Sidebar SEM esconder em telas grandes -->
-      <aside
-        id="sidebar"
-        class="w-16 lg:w-64 shrink-0 border-r border-slate-200 bg-white sticky top-0 h-svh overflow-y-auto"
-      >
-        <!-- Logo -->
-        <div class="h-16 flex items-center justify-center lg:justify-start px-4">
+  <body class="bg-slate-50 text-slate-800">
+    <div id="app" class="min-h-screen flex">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="w-64 shrink-0 border-r border-slate-200 bg-white">
+        <div class="h-16 flex items-center px-4">
           <img src="/icons/icon-192.png" alt="Inspecio" class="h-8 w-8 rounded-full" />
-          <span class="hidden lg:inline-block ml-3 font-semibold text-slate-800">Inspecio</span>
+          <span class="ml-3 font-semibold">Inspecio</span>
         </div>
 
-        <!-- Menu -->
-        <nav class="p-2 space-y-1">
-          <a href="#dashboard"
-             class="group flex items-center gap-3 rounded-xl px-3 py-2 text-slate-600 hover:bg-sky-50 hover:text-sky-700 data-[active=true]:bg-sky-100 data-[active=true]:text-sky-800">
-            <span aria-hidden class="inline-block w-5 text-center">🏠</span>
-            <span class="hidden lg:inline text-sm font-medium">Dashboard</span>
+        <nav id="sidebarNav" class="p-2 space-y-1">
+          <a href="#dashboard" data-route="dashboard"
+             class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sky-50 data-[active=true]:bg-sky-100 data-[active=true]:text-sky-800">
+            <span class="inline-block w-5 text-center">🏠</span>
+            <span class="text-sm font-medium">Dashboard</span>
           </a>
-          <a href="#metas"
-             class="group flex items-center gap-3 rounded-xl px-3 py-2 text-slate-600 hover:bg-sky-50 hover:text-sky-700">
-            <span aria-hidden class="inline-block w-5 text-center">🎯</span>
-            <span class="hidden lg:inline text-sm font-medium">Metas</span>
+          <a href="#metas" data-route="metas"
+             class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sky-50">
+            <span class="inline-block w-5 text-center">🎯</span>
+            <span class="text-sm font-medium">Metas</span>
           </a>
-          <a href="#formularios"
-             class="group flex items-center gap-3 rounded-xl px-3 py-2 text-slate-600 hover:bg-sky-50 hover:text-sky-700">
-            <span aria-hidden class="inline-block w-5 text-center">📋</span>
-            <span class="hidden lg:inline text-sm font-medium">Formulários</span>
+          <a href="#formularios" data-route="formularios"
+             class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sky-50">
+            <span class="inline-block w-5 text-center">📋</span>
+            <span class="text-sm font-medium">Formulários</span>
           </a>
-          <a href="#config"
-             class="group flex items-center gap-3 rounded-xl px-3 py-2 text-slate-600 hover:bg-sky-50 hover:text-sky-700">
-            <span aria-hidden class="inline-block w-5 text-center">⚙️</span>
-            <span class="hidden lg:inline text-sm font-medium">Configurações</span>
+          <a href="#config" data-route="config"
+             class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sky-50">
+            <span class="inline-block w-5 text-center">⚙️</span>
+            <span class="text-sm font-medium">Configurações</span>
           </a>
         </nav>
       </aside>
 
       <!-- Conteúdo -->
       <main class="flex-1 min-w-0">
-        <!-- sua página existente (cards, gráficos etc) continua sendo gerada pelos módulos TS -->
-        <div id="root"></div>
+        <!-- Topbar -->
+        <header class="h-16 flex items-center justify-end gap-3 px-6">
+          <button id="loginBtn" class="px-3 py-1 rounded-lg border border-sky-300 hover:bg-sky-50">Login</button>
+          <button id="logoutBtn" class="px-3 py-1 rounded-lg border hover:bg-slate-100">Logout</button>
+        </header>
+
+        <!-- KPIs -->
+        <section class="px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div class="card p-4">
+            <div class="text-sm text-slate-500">Aderência Geral</div>
+            <div id="kpiAderenciaGeral" class="text-3xl font-bold text-sky-600">0%</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-sm text-slate-500">Auditorias Realizadas</div>
+            <div id="kpiAuditoriasRealizadas" class="text-3xl font-bold">0</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-sm text-slate-500">Metas Auditadas</div>
+            <div id="kpiMetasAuditadas" class="text-3xl font-bold">0</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-sm text-slate-500">Conformidades</div>
+            <div id="kpiConformidades" class="text-3xl font-bold text-emerald-600">0</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-sm text-slate-500">Não Conformidades</div>
+            <div id="kpiNaoConformidades" class="text-3xl font-bold text-rose-600">0</div>
+          </div>
+        </section>
+
+        <!-- Gráficos -->
+        <section class="px-6 grid grid-cols-1 lg:grid-cols-2 gap-6 my-6">
+          <div class="card p-4">
+            <h2 class="font-semibold mb-3">Aderência por Meta</h2>
+            <div class="h-[320px]">
+              <canvas id="chartAderenciaMeta"></canvas>
+            </div>
+          </div>
+          <div class="card p-4">
+            <h2 class="font-semibold mb-3">Conformidade vs Não Conformidade</h2>
+            <div class="h-[320px]">
+              <canvas id="chartConformidadeVsNao"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- Botões utilitários (opcionais) -->
+        <section class="px-6 pb-10 flex gap-3">
+          <button id="btnRecarregarKPIs" class="px-3 py-2 rounded-lg border hover:bg-slate-100">Recarregar KPIs</button>
+          <button id="btnRecarregarGraficos" class="px-3 py-2 rounded-lg border hover:bg-slate-100">Recarregar Gráficos</button>
+          <button id="btnZerarDados" class="px-3 py-2 rounded-lg border hover:bg-slate-100">Zerar Dados</button>
+        </section>
       </main>
     </div>
 
-    <!-- Import do app (o Vite injeta o CSS processado automaticamente) -->
+    <!-- App (Vite injeta o CSS processado automaticamente) -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

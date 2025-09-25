@@ -1,8 +1,5 @@
-// src/pwa/registerSW.ts
 export function registerSW() {
-  // NÃO registra SW no ambiente de desenvolvimento
-  if (import.meta.env.DEV) return;
-
+  if (import.meta.env.DEV) return; // evita cache em dev
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
