@@ -1,12 +1,15 @@
 {
-  "name": "HGP - Auditoria Segurança do Paciente",
-  "short_name": "HGP Auditoria",
+  "name": "Inspecio",
+  "short_name": "Inspecio",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#F0F5FA",
-  "theme_color": "#0A3A6B",
+  "background_color": "#f7f7f8",
+  "theme_color": "#0ea5e9",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
