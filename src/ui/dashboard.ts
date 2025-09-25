@@ -3,7 +3,7 @@
  * - Sem `declare global`; sem `window.Chart` (usa `globalThis`).
  * - Gráficos só inicializam se existir <canvas> E se o Chart.js estiver presente.
  */
-
+import Chart from "chart.js/auto";
 // ------------------------- helpers -------------------------
 const $id = <T extends HTMLElement = HTMLElement>(id: string): T | null =>
   document.getElementById(id) as T | null;

@@ -1,4 +1,6 @@
 // src/main.ts
+// src/main.ts
+import "./styles.css"; // ✅ garante que o CSS entre no bundle
 import { registerSW } from "./pwa/registerSW";
 import {
   login,

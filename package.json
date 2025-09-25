@@ -12,7 +12,7 @@
     "@azure/msal-browser": "^3.20.0",
     "@pnp/msaljsclient": "^4.9.0",
     "@pnp/sp": "^4.9.0",
-    "chart.js": "^4.4.1",
+    "chart.js": "^4.5.0",
     "html2canvas": "^1.4.1",
     "idb": "^8.0.0",
     "jspdf": "^2.5.1",
@@ -20,6 +20,8 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.13",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.6.2",
     "vite": "^5.4.8",
