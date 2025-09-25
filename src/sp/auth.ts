@@ -1,3 +1,4 @@
+// src/sp/auth.ts
 import { PublicClientApplication, InteractionRequiredAuthError, AccountInfo } from "@azure/msal-browser";
 
 const pca = new PublicClientApplication({
@@ -9,20 +10,19 @@ const pca = new PublicClientApplication({
   cache: { cacheLocation: "localStorage", storeAuthStateInCookie: true },
 });
 
-// pedimos token do RECURSO SharePoint (não Graph):
-const SP_ORIGIN = import.meta.env.VITE_SP_ORIGIN; // ex.: https://<tenant>.sharepoint.com
+// SharePoint delegated scopes
+const SP_ORIGIN = import.meta.env.VITE_SP_ORIGIN;       // ex.: https://TENANT.sharepoint.com
 const SP_SCOPES = [`${SP_ORIGIN}/AllSites.FullControl`];
 
 export async function initAuth() {
   await pca.initialize();
-  // ESSENCIAL no fluxo redirect: tratar a volta SEMPRE no load
-  await pca.handleRedirectPromise();  // ← evita a “tela morta” após #code
+  await pca.handleRedirectPromise(); // trata retorno do loginRedirect
   const acct = pca.getAllAccounts()[0];
   if (acct) pca.setActiveAccount(acct);
 }
 
 export function login() {
-  return pca.loginRedirect({ scopes: SP_SCOPES }); // redirect evita popup bloqueada
+  return pca.loginRedirect({ scopes: SP_SCOPES });
 }
 
 export function logout() {
@@ -43,7 +43,7 @@ export async function getAccessTokenSP(): Promise<string> {
   } catch (e) {
     if (e instanceof InteractionRequiredAuthError) {
       await pca.acquireTokenRedirect({ scopes: SP_SCOPES });
-      return ""; // voltará via redirect
+      return ""; // fluxo volta pelo redirect
     }
     throw e;
   }
