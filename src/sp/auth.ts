@@ -1,62 +1,93 @@
 // src/sp/auth.ts
-import { PublicClientApplication, AccountInfo } from "@azure/msal-browser";
+import {
+  PublicClientApplication,
+  type Configuration,
+  type PopupRequest,
+  type RedirectRequest,
+  BrowserCacheLocation,
+} from "@azure/msal-browser";
 
-const CLIENT_ID =
-  import.meta.env.VITE_AZURE_CLIENT_ID ?? import.meta.env.VITE_AAD_CLIENT_ID;
-const TENANT_ID =
-  import.meta.env.VITE_AZURE_TENANT_ID ?? import.meta.env.VITE_AAD_TENANT_ID;
-const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI || window.location.origin;
+// ---- lê do seu .env.local ----
+const CLIENT_ID = import.meta.env.VITE_AZURE_CLIENT_ID as string;
+const TENANT_ID = import.meta.env.VITE_AZURE_TENANT_ID as string;
+const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI as string;
+// pode ser uma lista separada por vírgula: ex. "User.Read,https://.../AllSites.FullControl"
+const RAW_SCOPES = (import.meta.env.VITE_SP_SCOPE as string) || "User.Read";
 
-// Escopo para SPO (delegado). Ex.: https://seuTenant.sharepoint.com/AllSites.FullControl
-const SP_SCOPE = import.meta.env.VITE_SP_SCOPE;
+const SCOPES = RAW_SCOPES.split(",").map(s => s.trim()).filter(Boolean);
 
-if (!CLIENT_ID || !TENANT_ID || !SP_SCOPE) {
-  // Ajuda a identificar rapidamente problemas de .env ausente
-  console.warn("Vars ausentes: CLIENT_ID/TENANT_ID/SP_SCOPE. Confira seu .env.local");
-}
-
-export const pca = new PublicClientApplication({
+// ---- configuração MSAL v3 ----
+const msalConfig: Configuration = {
   auth: {
-    clientId: CLIENT_ID!, // garantimos via .env; o "!" evita ruído de TS
-    authority: `https://login.microsoftonline.com/${TENANT_ID!}`,
+    clientId: CLIENT_ID,
+    authority: `https://login.microsoftonline.com/${TENANT_ID}`,
     redirectUri: REDIRECT_URI,
   },
-  cache: { cacheLocation: "localStorage", storeAuthStateInCookie: false },
-});
+  cache: {
+    cacheLocation: BrowserCacheLocation.LocalStorage, // evita perder sessão em refresh
+    storeAuthStateInCookie: false,
+  },
+};
 
-// --- Fluxo MSAL ---
-export async function initAuth(): Promise<boolean> {
-  await pca.initialize();
-  const result = await pca.handleRedirectPromise().catch(() => null);
-  if (result?.account) pca.setActiveAccount(result.account);
-  return !!pca.getActiveAccount();
+let pca: PublicClientApplication | null = null;
+let initPromise: Promise<void> | null = null;
+
+export function initializeAuth(): Promise<void> {
+  if (!pca) pca = new PublicClientApplication(msalConfig);
+  if (!initPromise) initPromise = pca.initialize(); // v3: obrigatório aguardar
+  return initPromise;
 }
 
-export async function login(): Promise<never> {
-  await pca.loginRedirect({ scopes: [SP_SCOPE!] });
-  throw new Error("redirecting");
-}
+// request base (popup/redirect)
+const baseRequest: PopupRequest | RedirectRequest = { scopes: SCOPES };
 
-export async function logout(): Promise<void> {
-  const account = pca.getActiveAccount();
-  await pca.logoutRedirect({ account });
-}
+export async function login() {
+  await initializeAuth();
+  if (!pca) throw new Error("MSAL não inicializado");
 
-export function getActiveAccount(): AccountInfo | null {
-  return pca.getActiveAccount();
-}
-
-export async function acquireSpToken(): Promise<string> {
-  const account = pca.getActiveAccount();
-  if (!account) throw new Error("NO_ACCOUNT");
-  try {
-    const { accessToken } = await pca.acquireTokenSilent({
-      account,
-      scopes: [SP_SCOPE!],
-    });
-    return accessToken;
-  } catch {
-    await pca.acquireTokenRedirect({ account, scopes: [SP_SCOPE!] });
-    throw new Error("redirecting");
+  const accounts = pca.getAllAccounts();
+  if (accounts.length === 0) {
+    // use redirect se preferir (produção); popup facilita em dev
+    await pca.loginPopup(baseRequest);
+  } else {
+    pca.setActiveAccount(accounts[0]);
   }
+}
+
+export async function logout() {
+  await initializeAuth();
+  if (!pca) return;
+  const account = pca.getActiveAccount() || pca.getAllAccounts()[0];
+  await pca.logoutPopup({ account });
+}
+
+export async function getToken(
+  scopes: string[] = SCOPES
+): Promise<string> {
+  await initializeAuth();
+  if (!pca) throw new Error("MSAL não inicializado");
+
+  let account = pca.getActiveAccount();
+  if (!account) {
+    const accounts = pca.getAllAccounts();
+    if (accounts.length) {
+      account = accounts[0];
+      pca.setActiveAccount(account);
+    } else {
+      await login();
+      account = pca.getActiveAccount()!;
+    }
+  }
+
+  try {
+    const r = await pca.acquireTokenSilent({ account, scopes });
+    return r.accessToken;
+  } catch {
+    const r = await pca.acquireTokenPopup({ account, scopes });
+    return r.accessToken;
+  }
+}
+
+export function getActiveAccount() {
+  return pca?.getActiveAccount() ?? null;
 }

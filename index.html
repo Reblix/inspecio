@@ -4,12 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0ea5e9" />
-    <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <title>Inspecio</title>
-    <!-- Chart.js opcional (gráficos só rodam se esta lib existir) -->
+    <!-- Gráficos (opcional) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body class="bg-slate-50 text-slate-800">
@@ -20,7 +19,6 @@
           <img src="/icons/icon-192.png" alt="Inspecio" class="h-8 w-8 rounded-full" />
           <span class="ml-3 font-semibold">Inspecio</span>
         </div>
-
         <nav id="sidebarNav" class="p-2 space-y-1">
           <a href="#dashboard" data-route="dashboard"
              class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sky-50 data-[active=true]:bg-sky-100 data-[active=true]:text-sky-800">
@@ -53,56 +51,69 @@
           <button id="logoutBtn" class="px-3 py-1 rounded-lg border hover:bg-slate-100">Logout</button>
         </header>
 
-        <!-- KPIs -->
-        <section class="px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div class="card p-4">
-            <div class="text-sm text-slate-500">Aderência Geral</div>
-            <div id="kpiAderenciaGeral" class="text-3xl font-bold text-sky-600">0%</div>
-          </div>
-          <div class="card p-4">
-            <div class="text-sm text-slate-500">Auditorias Realizadas</div>
-            <div id="kpiAuditoriasRealizadas" class="text-3xl font-bold">0</div>
-          </div>
-          <div class="card p-4">
-            <div class="text-sm text-slate-500">Metas Auditadas</div>
-            <div id="kpiMetasAuditadas" class="text-3xl font-bold">0</div>
-          </div>
-          <div class="card p-4">
-            <div class="text-sm text-slate-500">Conformidades</div>
-            <div id="kpiConformidades" class="text-3xl font-bold text-emerald-600">0</div>
-          </div>
-          <div class="card p-4">
-            <div class="text-sm text-slate-500">Não Conformidades</div>
-            <div id="kpiNaoConformidades" class="text-3xl font-bold text-rose-600">0</div>
-          </div>
+        <!-- VIEW: Dashboard -->
+        <section data-view="dashboard" class="space-y-6">
+          <section class="px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="card p-4">
+              <div class="text-sm text-slate-500">Aderência Geral</div>
+              <div id="kpiAderenciaGeral" class="text-3xl font-bold text-sky-600">0%</div>
+            </div>
+            <div class="card p-4">
+              <div class="text-sm text-slate-500">Auditorias Realizadas</div>
+              <div id="kpiAuditoriasRealizadas" class="text-3xl font-bold">0</div>
+            </div>
+            <div class="card p-4">
+              <div class="text-sm text-slate-500">Metas Auditadas</div>
+              <div id="kpiMetasAuditadas" class="text-3xl font-bold">0</div>
+            </div>
+            <div class="card p-4">
+              <div class="text-sm text-slate-500">Conformidades</div>
+              <div id="kpiConformidades" class="text-3xl font-bold text-emerald-600">0</div>
+            </div>
+            <div class="card p-4">
+              <div class="text-sm text-slate-500">Não Conformidades</div>
+              <div id="kpiNaoConformidades" class="text-3xl font-bold text-rose-600">0</div>
+            </div>
+          </section>
+
+          <section class="px-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-4">
+              <h2 class="font-semibold mb-3">Aderência por Meta</h2>
+              <div class="h-[320px]"><canvas id="chartAderenciaMeta"></canvas></div>
+            </div>
+            <div class="card p-4">
+              <h2 class="font-semibold mb-3">Conformidade vs Não Conformidade</h2>
+              <div class="h-[320px]"><canvas id="chartConformidadeVsNao"></canvas></div>
+            </div>
+          </section>
+
+          <section class="px-6 pb-10 flex gap-3">
+            <button id="btnRecarregarKPIs" class="px-3 py-2 rounded-lg border hover:bg-slate-100">Recarregar KPIs</button>
+            <button id="btnRecarregarGraficos" class="px-3 py-2 rounded-lg border hover:bg-slate-100">Recarregar Gráficos</button>
+            <button id="btnZerarDados" class="px-3 py-2 rounded-lg border hover:bg-slate-100">Zerar Dados</button>
+          </section>
         </section>
 
-        <!-- Gráficos -->
-        <section class="px-6 grid grid-cols-1 lg:grid-cols-2 gap-6 my-6">
-          <div class="card p-4">
-            <h2 class="font-semibold mb-3">Aderência por Meta</h2>
-            <div class="h-[320px]">
-              <canvas id="chartAderenciaMeta"></canvas>
-            </div>
-          </div>
-          <div class="card p-4">
-            <h2 class="font-semibold mb-3">Conformidade vs Não Conformidade</h2>
-            <div class="h-[320px]">
-              <canvas id="chartConformidadeVsNao"></canvas>
-            </div>
-          </div>
+        <!-- VIEW: Metas -->
+        <section data-view="metas" class="hidden px-6 py-6">
+          <h2 class="text-xl font-semibold mb-4">Metas</h2>
+          <div id="metas-root" class="card p-4">Carregando metas…</div>
         </section>
 
-        <!-- Botões utilitários (opcionais) -->
-        <section class="px-6 pb-10 flex gap-3">
-          <button id="btnRecarregarKPIs" class="px-3 py-2 rounded-lg border hover:bg-slate-100">Recarregar KPIs</button>
-          <button id="btnRecarregarGraficos" class="px-3 py-2 rounded-lg border hover:bg-slate-100">Recarregar Gráficos</button>
-          <button id="btnZerarDados" class="px-3 py-2 rounded-lg border hover:bg-slate-100">Zerar Dados</button>
+        <!-- VIEW: Formulários -->
+        <section data-view="formularios" class="hidden px-6 py-6">
+          <h2 class="text-xl font-semibold mb-4">Formulários de Auditoria</h2>
+          <div id="forms-root" class="card p-4">Carregando formulários…</div>
+        </section>
+
+        <!-- VIEW: Config -->
+        <section data-view="config" class="hidden px-6 py-6">
+          <h2 class="text-xl font-semibold mb-4">Configurações do Administrador</h2>
+          <div id="config-root" class="card p-4">Carregando configurações…</div>
         </section>
       </main>
     </div>
 
-    <!-- App (Vite injeta o CSS processado automaticamente) -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
