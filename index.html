@@ -29,7 +29,7 @@
             <h2 class="text-3xl font-bold text-slate-800">Inspecio</h2>
             <p class="mt-1 text-slate-600 mb-8">Protocolo de Segurança do Paciente</p>
             <button id="loginBtn" class="w-full flex items-center justify-center gap-3 px-6 py-3 text-lg font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-transform transform hover:scale-105">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 23 23"><path fill="#fff" d="M11.5 11.5H23v11.5H11.5z"/><path fill="#f3f3f3" d="M0 0h11.5v11.5H0z"/><path fill="#f3f3f3" d="M0 11.5h11.5V23H0z"/><path fill="#f3f3f3" d="M11.5 0h11.5v11.5H11.5z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 23 23"><path fill="#fff" d="M0 0h11.5v11.5H0zM11.5 0h11.5v11.5H11.5zM0 11.5h11.5V23H0zM11.5 11.5H23V23H11.5z"/></svg>
                 Entrar com a Conta Microsoft
             </button>
         </div>
@@ -79,7 +79,7 @@
         <div class="p-6">
             <!-- VIEW: Dashboard -->
             <section data-view="dashboard" class="hidden space-y-6">
-              <!-- Conteúdo do Dashboard vai aqui -->
+              <!-- Conteúdo do Dashboard vai aqui pelo dashboard.ts -->
             </section>
 
             <!-- VIEW: Metas (Nova Auditoria) -->
@@ -90,8 +90,32 @@
             </section>
 
             <!-- VIEW: Formulário -->
-            <section data-view="form" class="hidden">
-                 <!-- O formulário será renderizado aqui pelo form.ts -->
+            <section data-view="form" class="hidden p-6 bg-white rounded-2xl shadow-lg">
+                <div id="form-content">
+                    <h2 id="form-title" class="text-2xl font-bold text-gray-800 mb-6"></h2>
+                    <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="form-pront" placeholder="Nº Prontuário" class="p-2 border rounded-lg">
+                        <input type="text" id="form-init" placeholder="Iniciais do Paciente" maxlength="3" class="p-2 border rounded-lg">
+                    </div>
+                    <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" id="form-auditor" placeholder="Auditor" class="p-2 border rounded-lg" readonly>
+                        <input type="text" id="form-setor" placeholder="Setor" class="p-2 border rounded-lg">
+                         <input type="date" id="form-date" class="p-2 border rounded-lg">
+                    </div>
+                    <div id="form-items" class="space-y-6"></div>
+                    <div class="mt-8">
+                        <label class="block text-lg font-semibold text-gray-700 mb-2">Anexar Fotos (máx. 5):</label>
+                        <input type="file" id="photo-input" accept="image/*" class="hidden">
+                        <button id="add-photo-button" class="px-4 py-2 text-sm text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200">
+                            <i class="fas fa-plus mr-2"></i>Adicionar Foto
+                        </button>
+                         <div id="image-previews" class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+                    </div>
+                    <div class="mt-8 flex justify-end space-x-4">
+                        <button id="cancel-form-button" class="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
+                        <button id="save-form-button" class="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700">Salvar Auditoria</button>
+                    </div>
+                </div>
             </section>
             
             <!-- VIEW: Auditorias Salvas -->
