@@ -4,7 +4,6 @@ import { dbp } from "../core/db";
 import { compressImage } from "../core/compress";
 import { gerarPDF } from "../core/pdf";
 import { createAuditoria, addResposta, uploadFoto, updateAuditoria } from "../sp/repo";
-import { showView } from "./metas";
 import { getCurrentUser } from "../sp/user";
 
 type Resp = "C" | "NC" | "NA";
@@ -270,7 +269,8 @@ async function saveAudit() {
   }
 
   if (confirm("Deseja gerar o PDF agora?")) await generatePdfPage(audit.idLocal);
-  showView("metas");
+  // Redireciona para a tela de metas
+  location.hash = "metas";
 }
 
 async function generatePdfPage(auditIdLocal: string) {
@@ -321,7 +321,10 @@ async function generatePdfPage(auditIdLocal: string) {
 
 function setupListeners() {
   byId("save-form-button")?.addEventListener("click", saveAudit);
-  byId("cancel-form-button")?.addEventListener("click", () => showView("metas"));
+  byId("cancel-form-button")?.addEventListener("click", () => {
+      // Altera o hash para voltar para a tela de metas
+      location.hash = "metas";
+  });
   byId("add-photo-button")?.addEventListener("click", () => {
     if (currentPhotos.length >= 5) { alert("Máximo de 5 fotos."); return; }
     photoInput()?.click();
