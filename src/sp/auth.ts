@@ -1,138 +1,155 @@
-// src/sp/auth.ts
 import {
   PublicClientApplication,
   EventType,
   AuthenticationResult,
   AccountInfo,
+  InteractionRequiredAuthError,
+  PopupRequest,
+  BrowserSystemOptions
 } from "@azure/msal-browser";
 
-// ----- Config a partir do .env (tudo precisa começar com VITE_) -----
-const clientId = import.meta.env.VITE_AZURE_CLIENT_ID as string;
-if (!clientId) {
-  console.warn(
-    "[auth] VITE_AZURE_CLIENT_ID ausente. Defina no .env.local para habilitar login."
-  );
+// --- Validação das Variáveis de Ambiente ---
+const clientId = import.meta.env.VITE_AZURE_CLIENT_ID;
+const tenantId = import.meta.env.VITE_AZURE_TENANT_ID;
+const spSiteUrl = import.meta.env.VITE_SP_SITE;
+
+if (!clientId || !tenantId || !spSiteUrl) {
+  const missing = [
+    !clientId && "VITE_AZURE_CLIENT_ID",
+    !tenantId && "VITE_AZURE_TENANT_ID",
+    !spSiteUrl && "VITE_SP_SITE",
+  ].filter(Boolean).join(", ");
+  
+  const msg = `[auth] Variáveis de ambiente faltando em .env.local: ${missing}. A aplicação não poderá se autenticar.`;
+  console.error(msg);
+  alert(msg);
+  throw new Error(msg);
 }
 
-const authority =
-  (import.meta.env.VITE_AZURE_AUTHORITY as string) ||
-  (import.meta.env.VITE_AZURE_TENANT_ID
-    ? `https://login.microsoftonline.com/${import.meta.env.VITE_AZURE_TENANT_ID}`
-    : "https://login.microsoftonline.com/common");
-
-const redirectUri =
-  (import.meta.env.VITE_AZURE_REDIRECT_URI as string) || window.location.origin;
-
-const postLogoutRedirectUri =
-  (import.meta.env.VITE_AZURE_POSTLOGOUT_REDIRECT_URI as string) ||
-  window.location.origin;
-
-const defaultLoginScopes: string[] =
-  (import.meta.env.VITE_AZURE_LOGIN_SCOPES as string)?.split(",").map(s => s.trim()) ||
-  ["User.Read"]; // escolha segura p/ teste
-
-const defaultSpScopes: string[] =
-  (import.meta.env.VITE_AZURE_SP_SCOPES as string)?.split(",").map(s => s.trim()) ||
-  ["User.Read"]; // ajuste para as APIs que você realmente consome
+// --- Configuração da MSAL ---
+const authority = `https://login.microsoftonline.com/${tenantId}`;
+const redirectUri = window.location.origin + "/";
 
 export const msal = new PublicClientApplication({
-  auth: { clientId, authority, redirectUri, postLogoutRedirectUri },
-  cache: { cacheLocation: "localStorage", storeAuthStateInCookie: false },
+  auth: {
+    clientId: clientId,
+    authority: authority,
+    redirectUri: redirectUri,
+    postLogoutRedirectUri: redirectUri,
+    navigateToLoginRequestUrl: false, // Previne loops de redirecionamento
+  },
+  cache: {
+    cacheLocation: "sessionStorage",
+    storeAuthStateInCookie: false,
+  },
+  system: {
+    iframeHashTimeout: 10000,
+    // Garante que popups de autenticação funcionem de forma mais suave em navegadores modernos.
+    asyncPopups: true 
+  } as BrowserSystemOptions
 });
 
-let currentAccount: AccountInfo | null = null;
-const subscribers = new Set<() => void>();
-const notify = () => subscribers.forEach((cb) => cb());
+// --- Definição dos Escopos ---
+const loginRequest: PopupRequest = {
+  scopes: ["User.Read"],
+};
 
-export function onAuthChanged(cb: () => void) {
+const tokenRequest: PopupRequest = {
+  // O escopo ".default" é a forma recomendada de solicitar acesso
+  // a todas as permissões delegadas concedidas ao aplicativo no Azure AD.
+  scopes: [`${spSiteUrl}/.default`],
+};
+
+// --- Gerenciamento de Estado de Autenticação ---
+const subscribers = new Set<(account: AccountInfo | null) => void>();
+
+export function onAuthChanged(cb: (account: AccountInfo | null) => void) {
   subscribers.add(cb);
+  cb(msal.getActiveAccount());
   return () => subscribers.delete(cb);
 }
 
+const notify = (account: AccountInfo | null) => subscribers.forEach((cb) => cb(account));
+
 export function isAuthenticated() {
-  return !!(msal.getActiveAccount() ?? currentAccount);
+  return !!msal.getActiveAccount();
 }
 
 export async function initializeAuth() {
-  try {
-    // Trata retorno de redirect, se houver
-    const result = await msal.handleRedirectPromise();
-    if (result?.account) {
-      msal.setActiveAccount(result.account);
-      currentAccount = result.account;
-    }
-  } catch (e) {
-    console.error("[msal] handleRedirectPromise error", e);
-  }
+  // CORREÇÃO: Adiciona a chamada de inicialização explícita e aguarda.
+  // Isso resolve o erro "uninitialized_public_client_application".
+  await msal.initialize();
 
-  // Seleciona uma conta ativa se já houver sessão
+  // Processa qualquer resposta de um fluxo de redirecionamento
+  await msal.handleRedirectPromise();
+
+  // Define a conta ativa se já existir uma sessão
   const accounts = msal.getAllAccounts();
-  if (!msal.getActiveAccount() && accounts.length > 0) {
+  if (accounts.length > 0) {
     msal.setActiveAccount(accounts[0]);
-    currentAccount = accounts[0];
   }
 
-  // Mantém estado atualizado via eventos
-  msal.addEventCallback((ev) => {
+  // Ouve por eventos de login/logout para manter a UI sincronizada
+  msal.addEventCallback((event) => {
+    let account: AccountInfo | null = null;
     if (
-      ev.eventType === EventType.LOGIN_SUCCESS ||
-      ev.eventType === EventType.ACQUIRE_TOKEN_SUCCESS
+      event.eventType === EventType.LOGIN_SUCCESS &&
+      (event.payload as AuthenticationResult).account
     ) {
-      const acc = (ev.payload as AuthenticationResult).account;
-      if (acc) {
-        msal.setActiveAccount(acc);
-        currentAccount = acc;
-        notify();
-      }
+      account = (event.payload as AuthenticationResult).account;
+      msal.setActiveAccount(account);
+    } else if (event.eventType === EventType.LOGOUT_SUCCESS) {
+      msal.setActiveAccount(null);
     }
-    if (ev.eventType === EventType.LOGOUT_SUCCESS) {
-      currentAccount = null;
-      notify();
-    }
+    notify(msal.getActiveAccount());
   });
-
-  notify();
 }
 
+// --- Funções de Login e Logout ---
 export async function login() {
   try {
-    const result = await msal.loginPopup({ scopes: defaultLoginScopes });
-    msal.setActiveAccount(result.account);
-    currentAccount = result.account;
-    notify();
-  } catch (e: any) {
-    // fallback se popup falhar (bloqueador, COOP etc.)
-    await msal.loginRedirect({ scopes: defaultLoginScopes });
+    await msal.loginPopup(loginRequest);
+  } catch (error) {
+    console.error("Login por popup falhou, tentando por redirecionamento:", error);
+    msal.loginRedirect(loginRequest);
   }
 }
 
 export async function logout() {
-  const account = msal.getActiveAccount() ?? currentAccount ?? undefined;
-  try {
-    await msal.logoutPopup({ account });
-  } catch {
+  const account = msal.getActiveAccount();
+  if (account) {
     await msal.logoutRedirect({ account });
   }
 }
 
-/**
- * Retorna um token (Graph/SharePoint/API) tentando primeiro em modo silencioso.
- * Alinhe os SCOPES no .env (VITE_AZURE_SP_SCOPES) de acordo com seu backend.
- */
-export async function acquireSpToken(scopes?: string[]) {
-  const request = {
-    scopes: (scopes && scopes.length ? scopes : defaultSpScopes),
-    account: msal.getActiveAccount() ?? currentAccount ?? msal.getAllAccounts()[0],
-  };
+// --- Função para Obter Tokens de Acesso para o SharePoint ---
+export async function acquireSpToken() {
+  const account = msal.getActiveAccount();
+  if (!account) {
+    throw new Error("Usuário não autenticado. Não é possível obter o token.");
+  }
+  
+  const request = { ...tokenRequest, account };
 
   try {
-    return await msal.acquireTokenSilent(request);
-  } catch {
-    try {
-      return await msal.acquireTokenPopup(request);
-    } catch {
-      await msal.acquireTokenRedirect(request);
-      return undefined; // redirect muda de página
+    // Tenta obter o token silenciosamente
+    const response = await msal.acquireTokenSilent(request);
+    return response.accessToken;
+  } catch (error) {
+    // Se falhar, tenta com um popup (interação do usuário necessária)
+    if (error instanceof InteractionRequiredAuthError) {
+      try {
+        const response = await msal.acquireTokenPopup(request);
+        return response.accessToken;
+      } catch (popupError) {
+        console.error("Falha ao obter token via popup:", popupError);
+        // Como último recurso, tenta por redirecionamento
+        msal.acquireTokenRedirect(request);
+        return ""; // A página será redirecionada
+      }
     }
+    console.error("Erro não interativo ao adquirir token:", error);
+    throw error;
   }
 }
+

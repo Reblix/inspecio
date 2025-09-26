@@ -1,6 +1,4 @@
-// src/main.ts
-// src/main.ts
-import "./styles.css"; // ✅ garante que o CSS entre no bundle
+import "./styles.css";
 import { registerSW } from "./pwa/registerSW";
 import {
   login,
@@ -9,57 +7,143 @@ import {
   onAuthChanged,
   isAuthenticated,
 } from "./sp/auth";
+import { AccountInfo } from "@azure/msal-browser";
 
-// ✅ carrega todos os módulos de /ui com efeito colateral (registro das telas)
+// Importa todos os módulos da pasta /ui para que eles se auto-registrem para eventos.
 import.meta.glob("./ui/**/*.ts", { eager: true });
 
 registerSW();
 
-/** Router por hash + notificação de view ativa */
-function showView(view: string) {
+const $ = (selector: string) => document.querySelector(selector) as HTMLElement | null;
+
+/**
+ * Controla qual tela principal é exibida: loading, login ou o app em si.
+ */
+function showAppView(view: "login" | "app" | "loading") {
+  const loginView = $("#login-view");
+  const mainApp = $("#main-app");
+  const loadingModal = $("#loading-modal");
+
+  [loginView, mainApp, loadingModal].forEach(el => el?.classList.add("hidden"));
+
+  if (view === 'loading') loadingModal?.classList.remove("hidden");
+  if (view === 'login') loginView?.classList.remove("hidden");
+  if (view === 'app') mainApp?.classList.remove("hidden");
+}
+
+/**
+ * Controla a visibilidade das seções de conteúdo DENTRO do app principal.
+ * @param view O nome da seção (ex: 'dashboard', 'metas').
+ */
+function showContentView(view: string) {
   const wanted = (view || "dashboard").toLowerCase();
+  
+  // Esconde todas as seções de conteúdo
   document.querySelectorAll<HTMLElement>("[data-view]").forEach((sec) => {
-    sec.classList.toggle("hidden", sec.dataset.view !== wanted);
+    sec.classList.add("hidden");
   });
+
+  // Mostra a seção desejada
+  const section = $(`[data-view="${wanted}"]`);
+  if (section) {
+    section.classList.remove("hidden");
+  } else {
+    // Se a view não for encontrada, volta para o dashboard por segurança.
+    $('[data-view="dashboard"]')?.classList.remove("hidden");
+    location.hash = "dashboard";
+  }
+
+  // Atualiza o estado ativo na barra lateral
   document.querySelectorAll("#sidebarNav a[data-route]").forEach((el) => {
-    (el as HTMLElement).dataset.active =
-      (el as HTMLAnchorElement).dataset.route === wanted ? "true" : "false";
+    const link = el as HTMLAnchorElement;
+    link.dataset.active = link.dataset.route === wanted ? "true" : "false";
   });
-  // dispara evento para módulos carregarem dados da view quando necessário
-  window.dispatchEvent(
-    new CustomEvent("view:entered", { detail: { view: wanted } })
-  );
+  
+  // Atualiza o título da página
+  const pageTitle = $("#page-title");
+  if (pageTitle) {
+      const titleMap: Record<string, string> = {
+          "dashboard": "Dashboard",
+          "metas": "Nova Auditoria",
+          "form": "Formulário de Auditoria",
+          "auditorias-salvas": "Auditorias Salvas",
+          "admin": "Admin"
+      };
+      pageTitle.textContent = titleMap[wanted] || "Inspecio";
+  }
+
+  // Dispara um evento global para notificar os módulos que a view mudou.
+  // Módulos como `metas.ts` e `dashboard.ts` vão ouvir este evento.
+  window.dispatchEvent(new CustomEvent("view:entered", { detail: { view: wanted } }));
 }
 
+/**
+ * Lê o hash da URL e exibe a view correta.
+ */
 function applyRoute() {
+  if (!isAuthenticated()) {
+    showAppView("login");
+    return;
+  }
+  showAppView("app");
   const hash = (location.hash.replace(/^#/, "") || "dashboard").toLowerCase();
-  showView(hash);
+  showContentView(hash);
 }
 
-window.addEventListener("hashchange", applyRoute);
+function updateUserProfile(account: AccountInfo | null) {
+    const profileContainer = $("#user-profile");
+    const userInfoHeader = $("#user-info");
+    
+    if (account && profileContainer && userInfoHeader) {
+        userInfoHeader.innerHTML = `<p class="font-semibold text-gray-700 text-sm">${account.name}</p><p class="text-xs text-gray-500">${account.username}</p>`;
+        
+        profileContainer.innerHTML = `
+            <div class="flex items-center gap-3 p-2">
+                <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-lg">
+                    ${account.name?.charAt(0) ?? 'U'}
+                </div>
+                <div class="hidden lg:block">
+                    <p class="font-semibold text-gray-700 text-sm truncate">${account.name}</p>
+                    <button id="logoutBtn" class="text-xs text-red-500 hover:underline">Sair</button>
+                </div>
+            </div>
+        `;
+        $("#logoutBtn")?.addEventListener("click", logout);
+        
+    } else if (profileContainer && userInfoHeader) {
+        userInfoHeader.innerHTML = '';
+        profileContainer.innerHTML = '';
+    }
+}
 
-// registra os listeners de clique já agora (sem esperar auth)
-window.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("loginBtn")?.addEventListener("click", login);
-  document.getElementById("logoutBtn")?.addEventListener("click", logout);
 
-  // navegação por clique na sidebar (delegação)
-  document.getElementById("sidebarNav")?.addEventListener("click", (ev) => {
-    const a = (ev.target as Element).closest(
-      "a[data-route]"
-    ) as HTMLAnchorElement | null;
-    if (!a) return;
-    ev.preventDefault();
-    location.hash = a.dataset.route || "dashboard";
+// ---- INICIALIZAÇÃO ----
+
+async function main() {
+  showAppView("loading");
+
+  // Registra listeners de eventos que existem desde o início.
+  $("#loginBtn")?.addEventListener("click", login);
+  
+  $("#sidebarNav")?.addEventListener("click", (ev) => {
+    const target = (ev.target as Element).closest("a[data-route]");
+    if (target) {
+      ev.preventDefault();
+      location.hash = target.getAttribute("data-route") || "dashboard";
+    }
   });
 
-  applyRoute();
-});
+  window.addEventListener("hashchange", applyRoute);
 
-// ✅ inicializa MSAL e re-renderiza quando o estado de auth mudar
-initializeAuth().finally(() => {
-  onAuthChanged(() => {
-    console.debug("[auth] mudou; autenticado?", isAuthenticated());
-    applyRoute(); // re-render por garantia
+  // Ouve por mudanças no estado de autenticação para atualizar a UI
+  onAuthChanged((account) => {
+    updateUserProfile(account);
+    applyRoute(); // Garante que a rota correta seja aplicada após login/logout
   });
-});
+
+  // Inicializa a MSAL. Isso pode envolver um redirecionamento.
+  await initializeAuth();
+}
+
+document.addEventListener("DOMContentLoaded", main);
+
