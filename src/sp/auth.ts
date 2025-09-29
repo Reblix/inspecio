@@ -54,10 +54,12 @@ const loginRequest: PopupRequest = {
   scopes: ["User.Read"],
 };
 
+const spOrigin = new URL(spSiteUrl!).origin;
+
 const tokenRequest: PopupRequest = {
   // O escopo ".default" é a forma recomendada de solicitar acesso
   // a todas as permissões delegadas concedidas ao aplicativo no Azure AD.
-  scopes: [`${spSiteUrl}/.default`],
+  scopes: [`${spOrigin}/.default`],
 };
 
 // --- Gerenciamento de Estado de Autenticação ---
