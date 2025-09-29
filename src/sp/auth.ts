@@ -1,14 +1,11 @@
 import {
   PublicClientApplication,
-  EventType,
   AuthenticationResult,
-  AccountInfo,
   InteractionRequiredAuthError,
   PopupRequest,
   BrowserSystemOptions,
 } from "@azure/msal-browser";
 
-// --- Validação das Variáveis de Ambiente ---
 const clientId = import.meta.env.VITE_AZURE_CLIENT_ID;
 const tenantId = import.meta.env.VITE_AZURE_TENANT_ID;
 const spSiteUrl = import.meta.env.VITE_SP_SITE;
@@ -25,7 +22,6 @@ if (!clientId || !tenantId || !spSiteUrl) {
   throw new Error(msg);
 }
 
-// --- Configuração da MSAL ---
 export const msal = new PublicClientApplication({
   auth: {
     clientId,
@@ -37,11 +33,10 @@ export const msal = new PublicClientApplication({
     storeAuthStateInCookie: false,
   },
   system: {
-    asyncPopups: true
+    asyncPopups: true,
   } as BrowserSystemOptions,
 });
 
-// --- Definição dos Escopos ---
 const loginRequest: PopupRequest = {
   scopes: ["User.Read"],
 };
@@ -51,10 +46,9 @@ const tokenRequest: PopupRequest = {
   scopes: [`${spOrigin}/.default`],
 };
 
-// --- Funções de Login e Logout ---
 export async function login() {
-  await msal.initialize();
   try {
+    // A inicialização agora é feita apenas no main.ts
     await msal.loginRedirect(loginRequest);
   } catch (error) {
     console.error("Falha no login por redirecionamento:", error);
@@ -68,9 +62,8 @@ export async function logout() {
   }
 }
 
-// --- Função para Obter Tokens de Acesso para o SharePoint ---
 export async function acquireSpToken() {
-  await msal.initialize();
+  // A inicialização agora é feita apenas no main.ts
   const account = msal.getActiveAccount();
   if (!account) {
     throw new Error("Usuário não autenticado. Não é possível obter o token.");
@@ -86,6 +79,8 @@ export async function acquireSpToken() {
       console.warn("Aquisição silenciosa de token falhou, tentando com redirecionamento.");
       msal.acquireTokenRedirect(request);
     }
-    throw error;
+    // Retorna uma promessa que nunca resolve, pois a página será redirecionada.
+    // Isso evita que o código continue executando e gere mais erros.
+    return new Promise(() => {});
   }
 }

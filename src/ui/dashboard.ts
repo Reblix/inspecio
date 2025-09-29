@@ -174,8 +174,21 @@ function initDashboard() {
   initButtons();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initDashboard);
-} else {
-  initDashboard();
+export function initializeDashboardModule() {
+  // Apenas renderiza se a view for a correta.
+  if (document.querySelector('[data-view="dashboard"]')?.classList.contains("hidden")) return;
+  
+  // Adicione aqui a lógica que busca dados reais do SharePoint
+  // e atualiza o 'state' antes de chamar as funções de renderização.
+
+  hydrateKPIs();
+  initCharts();
 }
+
+// Ouve o evento global para saber quando renderizar
+window.addEventListener("view:entered", (ev: Event) => {
+    const detail = (ev as CustomEvent).detail;
+    if (detail?.view === "dashboard") {
+        initializeDashboardModule();
+    }
+});

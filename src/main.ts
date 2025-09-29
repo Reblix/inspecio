@@ -1,58 +1,68 @@
-import { login, msal } from "./sp/auth";
+import { login, logout, msal } from "./sp/auth";
+import { registerSW } from "./pwa/registerSW";
+import { AccountInfo } from "@azure/msal-browser";
+import { initializeAdminModule } from "./ui/admin";
 import "./ui/form";
 import "./ui/galeria";
 import "./ui/metas";
-import "./ui/admin";
 import "./ui/dashboard";
-import { registerSW } from "./pwa/registerSW";
-import { AccountInfo } from "@azure/msal-browser";
 
 const $ = (id: string) => document.getElementById(id);
 
 async function main() {
-  await msal.initialize();
-  
-  try {
-    const response = await msal.handleRedirectPromise();
-    if (response) {
-      msal.setActiveAccount(response.account);
-    }
+  document.addEventListener("DOMContentLoaded", async () => {
+    $("loginBtn")?.addEventListener("click", login);
+    $("logoutBtn")?.addEventListener("click", logout);
 
-    let account = msal.getActiveAccount();
-    if (!account && msal.getAllAccounts().length > 0) {
-      msal.setActiveAccount(msal.getAllAccounts()[0]);
-      account = msal.getActiveAccount();
-    }
+    try {
+      await msal.initialize();
+      const response = await msal.handleRedirectPromise();
+      
+      let account: AccountInfo | null = null;
+      if (response) {
+        account = response.account;
+        msal.setActiveAccount(account);
+      } else {
+        const accounts = msal.getAllAccounts();
+        if (accounts.length > 0) {
+          account = accounts[0];
+          msal.setActiveAccount(account);
+        }
+      }
 
-    if (!account) {
-      console.log("Nenhum usuário logado, mostrando tela de login.");
+      if (!account) {
+        console.log("Nenhum usuário logado, mostrando tela de login.");
+        showView("login");
+        return;
+      }
+
+      console.log("Usuário autenticado:", account.username);
+      startApp(account);
+    } catch (error) {
+      console.error("Erro durante a inicialização:", error);
       showView("login");
-      return;
     }
-
-    console.log("Usuário autenticado:", account.username);
-    startApp(account);
-  } catch (error) {
-    console.error("Erro durante a inicialização ou autenticação:", error);
-    showView("login"); // Em caso de erro, mostra a tela de login
-  }
+  });
 }
 
 function startApp(account: AccountInfo) {
   showView("app");
-  
-  // Atualiza o perfil do usuário na UI
-  const userProfile = $("user-info");
-  if (userProfile) {
-    userProfile.innerHTML = `<p class="font-semibold">${account.name}</p><p class="text-sm">${account.username}</p>`;
-  }
-  
-  // Configura o roteamento
+  updateUserProfile(account);
+  initializeAdminModule();
+
   window.addEventListener("hashchange", route);
   route();
-
-  // Registra o Service Worker
   registerSW();
+}
+
+function updateUserProfile(account: AccountInfo | null) {
+  const userContainer = $("user-info");
+  if (userContainer && account) {
+    userContainer.innerHTML = `
+      <p class="font-semibold truncate text-sm">${account.name}</p>
+      <p class="text-xs text-slate-500 truncate">${account.username}</p>
+    `;
+  }
 }
 
 function showView(view: 'app' | 'login') {
@@ -66,19 +76,18 @@ function showView(view: 'app' | 'login') {
 }
 
 function route() {
-  const allViews = document.querySelectorAll<HTMLElement>("[data-view]");
-  allViews.forEach((v) => v.classList.add("hidden"));
+  const viewName = location.hash.replace("#", "") || "dashboard";
 
-  const viewName = location.hash.replace("#", "") || "metas";
-  const currentView = document.querySelector<HTMLElement>(`[data-view="${viewName}"]`);
-  currentView?.classList.remove("hidden");
+  document.querySelectorAll<HTMLElement>("[data-view]").forEach((v) => {
+    v.classList.toggle("hidden", v.dataset.view !== viewName);
+  });
 
-  const allNavLinks = document.querySelectorAll<HTMLElement>("[data-route]");
-  allNavLinks.forEach((v) => v.setAttribute("data-active", "false"));
-  const currentLink = document.querySelector<HTMLElement>(`[data-route="${viewName}"]`);
-  currentLink?.setAttribute("data-active", "true");
+  document.querySelectorAll<HTMLElement>("[data-route]").forEach((v) => {
+    v.setAttribute("data-active", "false");
+  });
+  document.querySelector<HTMLElement>(`[data-route="${viewName}"]`)?.setAttribute("data-active", "true");
+
+  window.dispatchEvent(new CustomEvent("view:entered", { detail: { view: viewName } }));
 }
 
-// Configura o botão de login e inicia a aplicação
-document.getElementById("loginBtn")?.addEventListener("click", login);
 main();

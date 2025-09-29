@@ -12,7 +12,6 @@
   </head>
   <body class="bg-slate-100 text-slate-800">
     
-    <!-- Tela de Loading Inicial -->
     <div id="loading-modal" class="fixed inset-0 bg-white flex items-center justify-center z-50">
       <div class="text-center">
         <svg class="animate-spin h-8 w-8 text-sky-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -23,12 +22,19 @@
       </div>
     </div>
     
-    
+    <div id="login-view" class="hidden fixed inset-0 flex items-center justify-center bg-slate-50 p-4 z-40">
+        <div class="w-full max-w-sm text-center p-8 bg-white rounded-2xl shadow-lg">
+            <img src="/logo.png" alt="Inspecio Logo" class="mx-auto mb-4 h-16 w-16">
+            <h2 class="text-3xl font-bold text-slate-800">Inspecio</h2>
+            <p class="mt-1 text-slate-600 mb-8">Protocolo de Segurança do Paciente</p>
+            <button id="loginBtn" class="w-full flex items-center justify-center gap-3 px-6 py-3 text-lg font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-transform transform hover:scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 23 23"><path fill="#fff" d="M0 0h11.5v11.5H0zM11.5 0h11.5v11.5H11.5zM0 11.5h11.5V23H0zM11.5 11.5H23V23H11.5z"/></svg>
+                Entrar com a Conta Microsoft
+            </button>
+        </div>
+    </div>
 
-
-    <!-- Aplicação Principal -->
     <div id="main-app" class="hidden min-h-screen flex">
-      <!-- Sidebar -->
       <aside class="w-20 lg:w-64 shrink-0 border-r border-slate-200 bg-white flex flex-col">
         <div class="h-16 flex items-center px-4 shrink-0">
           <img src="/logo.png" alt="Inspecio" class="h-10 w-10" />
@@ -43,76 +49,35 @@
             <span class="w-6 text-center text-lg">🎯</span>
             <span class="text-sm font-medium hidden lg:block">Nova Auditoria</span>
           </a>
-           <a href="#auditorias-salvas" data-route="auditorias-salvas" class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sky-50 data-[active=true]:bg-sky-100 data-[active=true]:text-sky-800">
+          <a href="#auditorias-salvas" data-route="auditorias-salvas" class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sky-50 data-[active=true]:bg-sky-100 data-[active=true]:text-sky-800">
             <span class="w-6 text-center text-lg">🗂️</span>
             <span class="text-sm font-medium hidden lg:block">Auditorias Salvas</span>
           </a>
-          
+          <a href="#admin" data-route="admin" class="hidden flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sky-50 data-[active=true]:bg-sky-100 data-[active=true]:text-sky-800">
+            <span class="w-6 text-center text-lg">⚙️</span>
+            <span class="text-sm font-medium hidden lg:block">Admin</span>
+          </a>
         </nav>
-        <div id="user-profile" class="p-2 shrink-0">
-            <!-- Perfil do usuário renderizado aqui -->
+        <div class="p-2 shrink-0 border-t">
+            <div id="user-info" class="text-left"></div>
+            <button id="logoutBtn" class="w-full text-left flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-red-600 hover:bg-red-50">
+              <span class="w-6 text-center text-lg">🚪</span>
+              <span class="font-medium hidden lg:block">Sair</span>
+            </button>
         </div>
       </aside>
 
-      <!-- Conteúdo -->
       <main class="flex-1 min-w-0 bg-slate-50">
-        <!-- Topbar -->
         <header class="h-16 flex items-center justify-between gap-3 px-6 border-b border-slate-200 bg-white">
-            <h1 id="page-title" class="text-xl font-semibold text-slate-700">Dashboard</h1>
-            <div id="user-info" class="text-right">
-                <!-- Informações do usuário renderizadas aqui -->
-            </div>
+            <h1 id="page-title" class="text-xl font-semibold text-slate-700"></h1>
         </header>
 
         <div class="p-6">
-            <!-- VIEW: Dashboard -->
-            <section data-view="dashboard" class="hidden space-y-6">
-              <!-- Conteúdo do Dashboard vai aqui pelo dashboard.ts -->
-            </section>
-
-            <!-- VIEW: Metas (Nova Auditoria) -->
-            <section data-view="metas" class="hidden">
-              <div id="metas-grid-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Botões das metas são renderizados aqui pelo metas.ts -->
-              </div>
-            </section>
-
-            <!-- VIEW: Formulário -->
-            <section data-view="form" class="hidden p-6 bg-white rounded-2xl shadow-lg">
-                <div id="form-content">
-                    <h2 id="form-title" class="text-2xl font-bold text-gray-800 mb-6"></h2>
-                    <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" id="form-pront" placeholder="Nº Prontuário" class="p-2 border rounded-lg">
-                        <input type="text" id="form-init" placeholder="Iniciais do Paciente" maxlength="3" class="p-2 border rounded-lg">
-                    </div>
-                    <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="text" id="form-auditor" placeholder="Auditor" class="p-2 border rounded-lg" readonly>
-                        <input type="text" id="form-setor" placeholder="Setor" class="p-2 border rounded-lg">
-                         <input type="date" id="form-date" class="p-2 border rounded-lg">
-                    </div>
-                    <div id="form-items" class="space-y-6"></div>
-                    <div class="mt-8">
-                        <label class="block text-lg font-semibold text-gray-700 mb-2">Anexar Fotos (máx. 5):</label>
-                        <input type="file" id="photo-input" accept="image/*" class="hidden">
-                        <button id="add-photo-button" class="px-4 py-2 text-sm text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200">
-                            <i class="fas fa-plus mr-2"></i>Adicionar Foto
-                        </button>
-                         <div id="image-previews" class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
-                    </div>
-                    <div class="mt-8 flex justify-end space-x-4">
-                        <button id="cancel-form-button" class="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
-                        <button id="save-form-button" class="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700">Salvar Auditoria</button>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- VIEW: Auditorias Salvas -->
-            <section data-view="auditorias-salvas" class="hidden">
-                <!-- A galeria será renderizada aqui pelo galeria.ts -->
-            </section>
-
-            
-           
+            <section data-view="dashboard"></section>
+            <section data-view="metas"></section>
+            <section data-view="form"></section>
+            <section data-view="auditorias-salvas"></section>
+            <section data-view="admin"></section>
         </div>
       </main>
     </div>

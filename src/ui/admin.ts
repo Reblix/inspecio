@@ -1,27 +1,27 @@
-// src/ui/admin.ts
 import { getCurrentUser } from "../sp/user";
 
-/**
- * Controla a visibilidade de elementos que são apenas para Admins,
- * como o filtro de auditores na galeria.
- */
-async function configureAdminUI() {
-  const wrapAuditorFilter = document.getElementById("f-auditor-wrap");
+// Envolvemos toda a lógica em uma função exportada
+export function initializeAdminModule() {
+  async function configureAdminUI() {
+    const wrapAuditorFilter = document.getElementById("f-auditor-wrap");
+    const adminNavButton = document.querySelector<HTMLElement>('[data-route="admin"]');
 
-  try {
-    const me = await getCurrentUser();
-    
-    // Se o usuário for admin, mostra o filtro. Senão, esconde.
-    if (me?.isAdmin) {
-      wrapAuditorFilter?.classList.remove("hidden");
-    } else {
+    try {
+      const me = await getCurrentUser();
+      
+      if (me?.isAdmin) {
+        wrapAuditorFilter?.classList.remove("hidden");
+        adminNavButton?.classList.remove("hidden");
+      } else {
+        wrapAuditorFilter?.classList.add("hidden");
+        adminNavButton?.classList.add("hidden");
+      }
+    } catch {
       wrapAuditorFilter?.classList.add("hidden");
+      adminNavButton?.classList.add("hidden");
     }
-  } catch {
-    // Se falhar ao obter o usuário, esconde por segurança.
-    wrapAuditorFilter?.classList.add("hidden");
   }
-}
 
-// Garante que a função seja executada quando o app carregar
-configureAdminUI();
+  // A função agora é chamada aqui dentro, quando o módulo for inicializado pelo main.ts
+  configureAdminUI();
+}
