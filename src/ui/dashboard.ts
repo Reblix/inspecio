@@ -1,191 +1,106 @@
-/* src/ui/dashboard.ts
- * - Blindado contra null (helpers e ?.).
- * - Sem `declare global`; sem `window.Chart` (usa `globalThis`).
- * - Gráficos só inicializam se existir <canvas> E se o Chart.js estiver presente.
- */
-import Chart from "chart.js/auto";
-// ------------------------- helpers -------------------------
-const $id = <T extends HTMLElement = HTMLElement>(id: string): T | null =>
-  document.getElementById(id) as T | null;
+import { byId, on } from "../core/vanilla";
+import { Chart } from "chart.js/auto";
 
-const setText = (id: string, value: string | number) => {
-  const el = $id(id);
-  if (el) el.textContent = String(value);
-};
-
-const onId = (id: string, ev: string, handler: (e: Event) => void) => {
-  const el = $id(id);
-  el?.addEventListener(ev as any, handler as any);
-};
-
-const on = (
-  root: Document | Element,
-  ev: string,
-  selector: string,
-  handler: (e: Event, target: Element) => void
-) => {
-  root.addEventListener(ev as any, (e: Event) => {
-    const t = (e.target as Element | null)?.closest?.(selector);
-    if (t) handler(e, t as Element);
-  });
-};
-
-const safeNum = (v: unknown, def = 0) => {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : def;
-};
-
-// ------------------------- estado (mock inicial) -------------------------
-// Troque por dados reais quando conectar nas suas fontes.
+// Estado simples para guardar os dados (substituir com dados reais)
 const state = {
-  kpis: {
-    aderenciaGeral: 0,
-    auditoriasRealizadas: 0,
-    metasAuditadas: 0,
-    conformidades: 0,
-    naoConformidades: 0,
-  },
-  aderenciaPorMeta: {
-    labels: ['Meta 1','Meta 2','Meta 3','Meta 4.1','Meta 5','Meta 6','Meta 6.1'],
-    values: [0, 0, 0, 0, 0, 0, 0],
-  },
-  confVsNao: { conformes: 0, naoConformes: 0 },
+    aderenciaGeral: 75,
+    identificacaoCorreta: 80,
+    comunicacaoEfetiva: 90,
+    medicamentosSeguros: 60,
+    cirurgiaSegura: 85,
+    higienizacaoMaos: 50,
+    prevencaoQuedasLesoes: 95,
 };
 
-// ------------------------- KPIs -------------------------
-function hydrateKPIs() {
-  setText('kpiAderenciaGeral', `${safeNum(state.kpis.aderenciaGeral)}%`);
-  setText('kpiAuditoriasRealizadas', safeNum(state.kpis.auditoriasRealizadas));
-  setText('kpiMetasAuditadas', safeNum(state.kpis.metasAuditadas));
-  setText('kpiConformidades', safeNum(state.kpis.conformidades));
-  setText('kpiNaoConformidades', safeNum(state.kpis.naoConformidades));
+function renderDashboardHTML(viewElement: HTMLElement) {
+    viewElement.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white p-4 rounded-2xl shadow-sm"><h4 class="text-sm text-slate-500">Aderência Geral</h4><p id="kpi-aderencia" class="text-3xl font-bold mt-1">-%</p></div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm"><h4 class="text-sm text-slate-500">Identificação Correta</h4><p id="kpi-identificacao" class="text-3xl font-bold mt-1">-%</p></div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm"><h4 class="text-sm text-slate-500">Comunicação Efetiva</h4><p id="kpi-comunicacao" class="text-3xl font-bold mt-1">-%</p></div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm"><h4 class="text-sm text-slate-500">Medicação Segura</h4><p id="kpi-medicamentos" class="text-3xl font-bold mt-1">-%</p></div>
+        </div>
+        <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm">
+                <h3 class="font-semibold text-slate-700 mb-4">Aderência Geral</h3>
+                <div class="relative w-full h-64"><canvas id="chart-aderencia-geral"></canvas></div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm">
+                <h3 class="font-semibold text-slate-700 mb-4">Performance por Meta</h3>
+                <div class="relative w-full h-64"><canvas id="chart-performance-meta"></canvas></div>
+            </div>
+        </div>
+    `;
 }
 
-// ------------------------- gráficos -------------------------
-let chartAderencia: any | null = null;
-let chartConfxNao: any | null = null;
+function hydrateKPIs() {
+    byId("kpi-aderencia")!.textContent = `${state.aderenciaGeral}%`;
+    byId("kpi-identificacao")!.textContent = `${state.identificacaoCorreta}%`;
+    byId("kpi-comunicacao")!.textContent = `${state.comunicacaoEfetiva}%`;
+    byId("kpi-medicamentos")!.textContent = `${state.medicamentosSeguros}%`;
+}
 
-// pega a referência global do Chart injetado pelo CDN (se existir)
-const ChartGlobal: any | undefined = (globalThis as any)?.Chart;
+let chartAderencia: Chart | null = null;
+let chartPerformance: Chart | null = null;
 
 function initCharts() {
-  if (!ChartGlobal) {
-    console.warn('[dashboard] Chart.js não encontrado — gráficos ignorados.');
-    return;
-  }
+    if (chartAderencia) chartAderencia.destroy();
+    const ctxAderencia = (byId("chart-aderencia-geral") as HTMLCanvasElement)?.getContext("2d");
+    if (ctxAderencia) {
+        chartAderencia = new Chart(ctxAderencia, {
+            type: 'doughnut',
+            data: {
+                labels: ['Aderência', 'Não Aderência'],
+                datasets: [{
+                    data: [state.aderenciaGeral, 100 - state.aderenciaGeral],
+                    backgroundColor: ['#0ea5e9', '#e2e8f0'],
+                    borderColor: '#fff',
+                    borderWidth: 4,
+                }]
+            },
+            options: { maintainAspectRatio: false, cutout: '70%' }
+        });
+    }
 
-  // Aderência por Meta
-  const cv1 = $id<HTMLCanvasElement>('chartAderenciaMeta');
-  if (cv1) {
-    chartAderencia?.destroy?.();
-    chartAderencia = new ChartGlobal(cv1.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: state.aderenciaPorMeta.labels,
-        datasets: [{ label: 'Aderência (%)', data: state.aderenciaPorMeta.values, borderWidth: 1 }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, max: 100, ticks: { callback: (v: number) => `${v}%` } } },
-        plugins: { legend: { display: true }, tooltip: { enabled: true } },
-      },
-    });
-  }
-
-  // Conformidade vs Não Conformidade
-  const cv2 = $id<HTMLCanvasElement>('chartConformidadeVsNao');
-  if (cv2) {
-    chartConfxNao?.destroy?.();
-    chartConfxNao = new ChartGlobal(cv2.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: ['Conformidades', 'Não Conformidades'],
-        datasets: [{ label: 'Quantidade', data: [state.confVsNao.conformes, state.confVsNao.naoConformes], borderWidth: 1 }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true } },
-        plugins: { legend: { display: false } },
-      },
-    });
-  }
-}
-
-function refreshCharts() {
-  if (chartAderencia) {
-    chartAderencia.data.labels = state.aderenciaPorMeta.labels;
-    chartAderencia.data.datasets[0].data = state.aderenciaPorMeta.values;
-    chartAderencia.update();
-  }
-  if (chartConfxNao) {
-    chartConfxNao.data.datasets[0].data = [state.confVsNao.conformes, state.confVsNao.naoConformes];
-    chartConfxNao.update();
-  }
-}
-
-// ------------------------- navegação (sidebar) -------------------------
-function initSidebarNav() {
-  const nav = $id('sidebarNav');
-  if (!nav) return;
-
-  const setActiveFromHash = () => {
-    const hash = (location.hash.replace(/^#/, '') || 'dashboard').toLowerCase();
-    document.querySelectorAll('#sidebarNav a[data-route]').forEach((el) => {
-      (el as HTMLElement).dataset.active = 'false';
-    });
-    const current = nav.querySelector(`a[data-route="${hash}"]`) as HTMLElement | null;
-    if (current) current.dataset.active = 'true';
-
-    // Se você usa views por hash, chame aqui:
-    // showView(hash)
-  };
-
-  on(nav, 'click', 'a[data-route]', (e, target) => {
-    e.preventDefault();
-    const route = (target as HTMLElement).getAttribute('data-route') || 'dashboard';
-    location.hash = route;
-    setActiveFromHash();
-  });
-
-  window.addEventListener('hashchange', setActiveFromHash);
-  setActiveFromHash();
-}
-
-// ------------------------- binds de botões (exemplos) -------------------
-function initButtons() {
-  onId('btnRecarregarKPIs', 'click', () => hydrateKPIs());
-  onId('btnRecarregarGraficos', 'click', () => refreshCharts());
-  onId('btnZerarDados', 'click', () => {
-    state.kpis = { aderenciaGeral: 0, auditoriasRealizadas: 0, metasAuditadas: 0, conformidades: 0, naoConformidades: 0 };
-    state.aderenciaPorMeta.values = state.aderenciaPorMeta.values.map(() => 0);
-    state.confVsNao = { conformes: 0, naoConformes: 0 };
-    hydrateKPIs();
-    refreshCharts();
-  });
-}
-
-// ------------------------- inicialização -------------------------
-function initDashboard() {
-  hydrateKPIs();
-  initCharts();
-  initSidebarNav();
-  initButtons();
+    if (chartPerformance) chartPerformance.destroy();
+    const ctxPerformance = (byId("chart-performance-meta") as HTMLCanvasElement)?.getContext("2d");
+    if (ctxPerformance) {
+        chartPerformance = new Chart(ctxPerformance, {
+            type: 'bar',
+            data: {
+                labels: ['Id. Correta', 'Comunicação', 'Med. Segura', 'Cir. Segura', 'Hig. Mãos', 'Prev. Quedas'],
+                datasets: [{
+                    label: '% Aderência',
+                    data: [
+                        state.identificacaoCorreta, 
+                        state.comunicacaoEfetiva, 
+                        state.medicamentosSeguros, 
+                        state.cirurgiaSegura, 
+                        state.higienizacaoMaos, 
+                        state.prevencaoQuedasLesoes
+                    ],
+                    backgroundColor: '#38bdf8',
+                    borderRadius: 8,
+                }]
+            },
+            options: { maintainAspectRatio: false, indexAxis: 'y' }
+        });
+    }
 }
 
 export function initializeDashboardModule() {
-  // Apenas renderiza se a view for a correta.
-  if (document.querySelector('[data-view="dashboard"]')?.classList.contains("hidden")) return;
-  
-  // Adicione aqui a lógica que busca dados reais do SharePoint
-  // e atualiza o 'state' antes de chamar as funções de renderização.
+    const dashboardView = document.querySelector('[data-view="dashboard"]');
+    if (!dashboardView) return;
 
-  hydrateKPIs();
-  initCharts();
+    // 1. Garante que o HTML seja renderizado primeiro
+    renderDashboardHTML(dashboardView as HTMLElement);
+    
+    // 2. Agora que o HTML existe, preenche os dados e inicializa os gráficos
+    hydrateKPIs();
+    initCharts();
 }
 
-// Ouve o evento global para saber quando renderizar
+// Ouve o evento global do main.ts para saber quando ser executado
 window.addEventListener("view:entered", (ev: Event) => {
     const detail = (ev as CustomEvent).detail;
     if (detail?.view === "dashboard") {
