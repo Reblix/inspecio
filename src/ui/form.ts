@@ -67,10 +67,10 @@ async function fillAuditorReadOnly() {
   try {
     const me = await getCurrentUser();
     auditorInput.value = (me as any).title ?? (me as any).displayName ?? "";
-    auditorInput.setAttribute("disabled", "true");
+    auditorInput.readOnly = true; // <-- CORREÇÃO
     auditorInput.classList.add("bg-gray-100");
   } catch {
-    auditorInput.removeAttribute("disabled");
+    auditorInput.readOnly = false; // <-- CORREÇÃO
     auditorInput.classList.remove("bg-gray-100");
   }
 }

@@ -23,18 +23,8 @@
       </div>
     </div>
     
-    <!-- Tela de Login -->
-    <div id="login-view" class="hidden min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div class="w-full max-w-sm text-center p-8 bg-white rounded-2xl shadow-lg">
-            <img src="/logo.png" alt="Inspecio Logo" class="mx-auto mb-4 h-16 w-16">
-            <h2 class="text-3xl font-bold text-slate-800">Inspecio</h2>
-            <p class="mt-1 text-slate-600 mb-8">Protocolo de Segurança do Paciente</p>
-            <button id="loginBtn" class="w-full flex items-center justify-center gap-3 px-6 py-3 text-lg font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-transform transform hover:scale-105">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 23 23"><path fill="#fff" d="M0 0h11.5v11.5H0zM11.5 0h11.5v11.5H11.5zM0 11.5h11.5V23H0zM11.5 11.5H23V23H11.5z"/></svg>
-                Entrar com a Conta Microsoft
-            </button>
-        </div>
-    </div>
+    
+
 
     <!-- Aplicação Principal -->
     <div id="main-app" class="hidden min-h-screen flex">
@@ -57,10 +47,7 @@
             <span class="w-6 text-center text-lg">🗂️</span>
             <span class="text-sm font-medium hidden lg:block">Auditorias Salvas</span>
           </a>
-          <a href="#admin" data-route="admin" class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sky-50 data-[active=true]:bg-sky-100 data-[active=true]:text-sky-800">
-            <span class="w-6 text-center text-lg">⚙️</span>
-            <span class="text-sm font-medium hidden lg:block">Admin</span>
-          </a>
+          
         </nav>
         <div id="user-profile" class="p-2 shrink-0">
             <!-- Perfil do usuário renderizado aqui -->
@@ -124,10 +111,8 @@
                 <!-- A galeria será renderizada aqui pelo galeria.ts -->
             </section>
 
-            <!-- VIEW: Admin -->
-            <section data-view="admin" class="hidden">
-                 <!-- A página de admin será renderizada aqui pelo admin.ts -->
-            </section>
+            
+           
         </div>
       </main>
     </div>
