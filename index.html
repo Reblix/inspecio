@@ -4,13 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0ea5e9" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="/logo.png" />
     <title>Inspecio - Auditoria HGP</title>
-  </head>
-  <body class="bg-slate-100 text-slate-800">
+    </head>
+  <body class="bg-slate-100 text-slate-800 antialiased">
     
     <div id="loading-modal" class="fixed inset-0 bg-white flex items-center justify-center z-50">
       <div class="text-center">
@@ -18,12 +17,12 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <p class="mt-2 text-slate-600">Carregando...</p>
+        <p class="mt-2 text-slate-600">Carregando e autenticando...</p>
       </div>
     </div>
     
     <div id="login-view" class="hidden fixed inset-0 flex items-center justify-center bg-slate-50 p-4 z-40">
-        <div class="w-full max-w-sm text-center p-8 bg-white rounded-2xl shadow-lg">
+        <div class="w-full max-w-sm text-center p-8 bg-white rounded-2xl shadow-lg animate-fade-in">
             <img src="/logo.png" alt="Inspecio Logo" class="mx-auto mb-4 h-16 w-16">
             <h2 class="text-3xl font-bold text-slate-800">Inspecio</h2>
             <p class="mt-1 text-slate-600 mb-8">Protocolo de Segurança do Paciente</p>
@@ -58,8 +57,8 @@
             <span class="text-sm font-medium hidden lg:block">Admin</span>
           </a>
         </nav>
-        <div class="p-2 shrink-0 border-t">
-            <div id="user-info" class="text-left"></div>
+        <div class="p-2 shrink-0 border-t border-slate-200/80">
+            <div id="user-info" class="text-left p-2 mb-1"></div>
             <button id="logoutBtn" class="w-full text-left flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-red-600 hover:bg-red-50">
               <span class="w-6 text-center text-lg">🚪</span>
               <span class="font-medium hidden lg:block">Sair</span>
@@ -71,7 +70,6 @@
         <header class="h-16 flex items-center justify-between gap-3 px-6 border-b border-slate-200 bg-white">
             <h1 id="page-title" class="text-xl font-semibold text-slate-700"></h1>
         </header>
-
         <div class="p-6">
             <section data-view="dashboard"></section>
             <section data-view="metas"></section>
@@ -85,4 +83,3 @@
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
-

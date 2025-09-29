@@ -1,6 +1,5 @@
 import {
   PublicClientApplication,
-  AuthenticationResult,
   InteractionRequiredAuthError,
   PopupRequest,
   BrowserSystemOptions,
@@ -11,13 +10,7 @@ const tenantId = import.meta.env.VITE_AZURE_TENANT_ID;
 const spSiteUrl = import.meta.env.VITE_SP_SITE;
 
 if (!clientId || !tenantId || !spSiteUrl) {
-  const missing = [
-    !clientId && "VITE_AZURE_CLIENT_ID",
-    !tenantId && "VITE_AZURE_TENANT_ID",
-    !spSiteUrl && "VITE_SP_SITE",
-  ].filter(Boolean).join(", ");
-  
-  const msg = `[auth] Variáveis de ambiente faltando: ${missing}.`;
+  const msg = `[auth] Variáveis de ambiente faltando. Verifique seu .env.local`;
   alert(msg);
   throw new Error(msg);
 }
@@ -32,9 +25,6 @@ export const msal = new PublicClientApplication({
     cacheLocation: "sessionStorage",
     storeAuthStateInCookie: false,
   },
-  system: {
-    asyncPopups: true,
-  } as BrowserSystemOptions,
 });
 
 const loginRequest: PopupRequest = {
@@ -46,24 +36,22 @@ const tokenRequest: PopupRequest = {
   scopes: [`${spOrigin}/.default`],
 };
 
-export async function login() {
-  try {
-    // A inicialização agora é feita apenas no main.ts
-    await msal.loginRedirect(loginRequest);
-  } catch (error) {
+export function login() {
+  msal.loginRedirect(loginRequest).catch((error) => {
     console.error("Falha no login por redirecionamento:", error);
-  }
+  });
 }
 
-export async function logout() {
+export function logout() {
   const account = msal.getActiveAccount();
   if (account) {
-    await msal.logoutRedirect({ account });
+    msal.logoutRedirect({ account }).catch((error) => {
+      console.error("Falha no logout:", error);
+    });
   }
 }
 
-export async function acquireSpToken() {
-  // A inicialização agora é feita apenas no main.ts
+export async function acquireSpToken(): Promise<string> {
   const account = msal.getActiveAccount();
   if (!account) {
     throw new Error("Usuário não autenticado. Não é possível obter o token.");
@@ -76,11 +64,10 @@ export async function acquireSpToken() {
     return response.accessToken;
   } catch (error) {
     if (error instanceof InteractionRequiredAuthError) {
-      console.warn("Aquisição silenciosa de token falhou, tentando com redirecionamento.");
+      console.warn("Aquisição silenciosa de token falhou. Redirecionando...");
       msal.acquireTokenRedirect(request);
     }
     // Retorna uma promessa que nunca resolve, pois a página será redirecionada.
-    // Isso evita que o código continue executando e gere mais erros.
     return new Promise(() => {});
   }
 }

@@ -9,46 +9,44 @@ import "./ui/dashboard";
 
 const $ = (id: string) => document.getElementById(id);
 
-async function main() {
-  document.addEventListener("DOMContentLoaded", async () => {
-    $("loginBtn")?.addEventListener("click", login);
-    $("logoutBtn")?.addEventListener("click", logout);
-
-    try {
-      await msal.initialize();
-      const response = await msal.handleRedirectPromise();
-      
-      let account: AccountInfo | null = null;
-      if (response) {
-        account = response.account;
-        msal.setActiveAccount(account);
-      } else {
-        const accounts = msal.getAllAccounts();
-        if (accounts.length > 0) {
-          account = accounts[0];
-          msal.setActiveAccount(account);
-        }
-      }
-
-      if (!account) {
-        console.log("Nenhum usuário logado, mostrando tela de login.");
-        showView("login");
-        return;
-      }
-
-      console.log("Usuário autenticado:", account.username);
-      startApp(account);
-    } catch (error) {
-      console.error("Erro durante a inicialização:", error);
-      showView("login");
+(async () => {
+  try {
+    await msal.initialize();
+    const response = await msal.handleRedirectPromise();
+    
+    let account: AccountInfo | null = msal.getActiveAccount();
+    if (!account && response) {
+      account = response.account;
     }
-  });
-}
+    msal.setActiveAccount(account);
+
+    if (!account) {
+      // Se não houver conta, a única coisa que fazemos é mostrar a view de login
+      // e anexar o evento ao botão.
+      document.addEventListener("DOMContentLoaded", () => {
+        showView("login");
+        $("loginBtn")?.addEventListener("click", login);
+      });
+      return;
+    }
+
+    // Se houver uma conta, prosseguimos para iniciar o app.
+    document.addEventListener("DOMContentLoaded", () => {
+      startApp(account!);
+    });
+
+  } catch (error) {
+    console.error("Erro crítico durante a inicialização:", error);
+    document.addEventListener("DOMContentLoaded", () => showView("login"));
+  }
+})();
 
 function startApp(account: AccountInfo) {
   showView("app");
   updateUserProfile(account);
   initializeAdminModule();
+
+  $("logoutBtn")?.addEventListener("click", logout);
 
   window.addEventListener("hashchange", route);
   route();
@@ -89,5 +87,3 @@ function route() {
 
   window.dispatchEvent(new CustomEvent("view:entered", { detail: { view: viewName } }));
 }
-
-main();
